@@ -59,7 +59,6 @@ protected:
 
 	void Move(const FInputActionValue& Value);
 	void StartJump();
-	void EndJump();
 	void Look(const FInputActionValue& Value);
 
 

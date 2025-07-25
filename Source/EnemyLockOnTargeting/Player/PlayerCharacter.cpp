@@ -11,9 +11,8 @@ APlayerCharacter::APlayerCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	// Spring Arm
 	
+	// Spring Arm
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f;
@@ -61,7 +60,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (enhancedInput) {
 		enhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 		enhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::StartJump);
-		enhancedInput->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndJump);
 		enhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	}
 }
@@ -79,16 +77,10 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	AddMovementInput(GetActorRightVector(), moveVector.X);		// Move left/right
 }
 
-/* Input: Starts applying jump force when player presses jump input */
+/* Input: Applies jump force when player presses jump input */
 void APlayerCharacter::StartJump() {
 
 	Jump();
-}
-
-/* Input: Stops applying jump force when player releases jump input */
-void APlayerCharacter::EndJump() {
-
-	StopJumping();
 }
 
 /* Input: Rotates player camera left, right, up, and down */
