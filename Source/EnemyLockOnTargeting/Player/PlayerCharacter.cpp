@@ -3,8 +3,9 @@
 
 #include "EnemyLockOnTargeting/Player/PlayerCharacter.h"
 
-#include "Camera/CameraComponent.h"				// Camera
-#include "GameFramework/SpringArmComponent.h"	// Spring Arm
+#include "Camera/CameraComponent.h"						// Camera
+#include "GameFramework/SpringArmComponent.h"			// Spring Arm
+#include "GameFramework/CharacterMovementComponent.h"	// Character Movement Component
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -15,13 +16,17 @@ APlayerCharacter::APlayerCharacter()
 	// Spring Arm
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(RootComponent);
-	SpringArm->TargetArmLength = 400.0f;
+	SpringArm->TargetArmLength = 500.0f;
 	SpringArm->bUsePawnControlRotation = true;		// Let spring arm handle look rotation
 
 	// Camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	// Class Defaults
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 }
 
 // Called when the game starts or when spawned
@@ -70,11 +75,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 /* Input: Moves player forwards, backwards, left, and right */
 void APlayerCharacter::Move(const FInputActionValue& Value) {
+	
+	FVector2D moveInput = Value.Get<FVector2D>();
 
-	FVector2D moveVector = Value.Get<FVector2D>();
-
-	AddMovementInput(GetActorForwardVector(), moveVector.Y);	// Move forward/backwards
-	AddMovementInput(GetActorRightVector(), moveVector.X);		// Move left/right
+	if (moveInput != FVector2D::ZeroVector)
+	{
+		// Move relative to camera
+		AddMovementInput(Camera->GetForwardVector(), moveInput.Y);
+		AddMovementInput(Camera->GetRightVector(), moveInput.X);
+	}
 }
 
 /* Input: Applies jump force when player presses jump input */

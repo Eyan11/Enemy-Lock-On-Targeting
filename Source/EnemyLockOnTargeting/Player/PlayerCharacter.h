@@ -9,6 +9,10 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
+/**
+ * In charge of player input and actions
+ */
+
 UCLASS()
 class ENEMYLOCKONTARGETING_API APlayerCharacter : public ACharacter
 {
