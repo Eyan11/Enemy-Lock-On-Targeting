@@ -78,11 +78,21 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	FVector2D moveInput = Value.Get<FVector2D>();
 
-	if (moveInput != FVector2D::ZeroVector)
+	// If there is input and grounded
+	if (moveInput != FVector2D::ZeroVector && !GetCharacterMovement()->IsFalling())
 	{
+		// Get camera 2D vectors
+		FVector camForward = Camera->GetForwardVector();
+		camForward.Z = 0.0f;
+		camForward.Normalize();
+
+		FVector camRight = Camera->GetRightVector();
+		camRight.Z = 0.0f;
+		camRight.Normalize();
+
 		// Move relative to camera
-		AddMovementInput(Camera->GetForwardVector(), moveInput.Y);
-		AddMovementInput(Camera->GetRightVector(), moveInput.X);
+		AddMovementInput(camForward, moveInput.Y);
+		AddMovementInput(camRight, moveInput.X);
 	}
 }
 
