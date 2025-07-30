@@ -26,7 +26,9 @@ APlayerCharacter::APlayerCharacter()
 
 	// Class Defaults
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	StartMovingCounter = StartMovingDelay;
 }
 
 // Called when the game starts or when spawned
@@ -51,6 +53,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// *** Player Rotation
+	FRotator TargetRotation = InputDir.Rotation();
+	FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
+		TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
+	SetActorRotation(NewRotation);
 }
 
 // Called to bind functionality to input
@@ -70,7 +77,39 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 }
 
 
+void APlayerCharacter::CalculateMoveStateChanges(const FVector& playerForward) {
 
+	// *** Start Moving Delay
+
+	// If player just started moving from idle
+	if (!bIsDelayingMovement && GetVelocity().IsNearlyZero()) {
+
+		// If player is NOT facing input direction, delay movement
+		if (FVector::DotProduct(InputDir, playerForward) < 0.80) {
+			bIsDelayingMovement = true;
+			StartMovingCounter = StartMovingDelay;
+		}
+	}
+
+	// If player is waiting for delay to end before moving from idle
+	if (bIsDelayingMovement) {
+		StartMovingCounter -= GetWorld()->GetDeltaSeconds();
+
+		if (StartMovingCounter <= 0)
+			bIsDelayingMovement = false;
+	}
+
+
+	// *** Switch Directions
+
+	// If player wants to move in opposite direction
+	if (!bIsSwitchingDir && FVector::DotProduct(InputDir, playerForward) < -0.80)
+		bIsSwitchingDir = true;
+
+	// If player has finished switching directions
+	if (bIsSwitchingDir && FVector::DotProduct(InputDir, playerForward) > 0.97)
+		bIsSwitchingDir = false;
+}
 
 
 /* Input: Moves player forwards, backwards, left, and right */
@@ -78,21 +117,39 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	FVector2D moveInput = Value.Get<FVector2D>();
 
-	// If there is input and grounded
-	if (moveInput != FVector2D::ZeroVector && !GetCharacterMovement()->IsFalling())
-	{
-		// Get camera 2D vectors
-		FVector camForward = Camera->GetForwardVector();
-		camForward.Z = 0.0f;
-		camForward.Normalize();
+	// If grounded or no input or input is too small, exit function
+	if (GetCharacterMovement()->IsFalling() || moveInput.Size() < InputDeadzone) {
+		bIsDelayingMovement = false;
+		return;
+	}
 
-		FVector camRight = Camera->GetRightVector();
-		camRight.Z = 0.0f;
-		camRight.Normalize();
+	FVector playerForward = GetActorForwardVector();
 
-		// Move relative to camera
-		AddMovementInput(camForward, moveInput.Y);
-		AddMovementInput(camRight, moveInput.X);
+	// Get camera XY vectors
+	FVector camForward = Camera->GetForwardVector();
+	camForward.Z = 0.0f;
+	camForward.Normalize();
+
+	FVector camRight = Camera->GetRightVector();
+	camRight.Z = 0.0f;
+	camRight.Normalize();
+
+	// Get input direction in reference to camera
+	InputDir = (camForward * moveInput.Y) + (camRight * moveInput.X);
+	InputDir.Normalize();
+
+	// Checks for start moving delay and switching directions
+	CalculateMoveStateChanges(playerForward);
+
+	// Apply movement
+	if (!bIsDelayingMovement) {
+
+		// If switching directions, move in input direction
+		if(bIsSwitchingDir)
+			AddMovementInput(InputDir, moveInput.Size());
+		// Otherwise move in player forward direction
+		else
+			AddMovementInput(playerForward, moveInput.Size());
 	}
 }
 

@@ -61,9 +61,24 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* AttackAction;
 
+	// *** Movement Settings
+	FVector InputDir = FVector::ForwardVector;
+	float StartMovingCounter = 0.0f;
+	bool bIsDelayingMovement = false;
+	bool bIsSwitchingDir = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	float RotationLerp = 12.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	float InputDeadzone = 0.2f;
+	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	float StartMovingDelay = 0.2f;
+
 	void Move(const FInputActionValue& Value);
 	void StartJump();
 	void Look(const FInputActionValue& Value);
+
+	void CalculateMoveStateChanges(const FVector& PlayerForward);
 
 
 };
