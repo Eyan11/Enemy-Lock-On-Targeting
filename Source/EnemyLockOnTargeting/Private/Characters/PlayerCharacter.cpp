@@ -1,10 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/*
+* Author: Eyan Martucci
+* Description: Manages player input and basic movement
+*/
 
-
-#include "EnemyLockOnTargeting/Player/PlayerCharacter.h"
+#include "Characters/PlayerCharacter.h"
 
 #include "Camera/CameraComponent.h"						// Camera
 #include "GameFramework/SpringArmComponent.h"			// Spring Arm
+#include "Components/LockOnTargeting.h"					// Lock on targeting
 #include "GameFramework/CharacterMovementComponent.h"	// Character Movement Component
 
 // Sets default values
@@ -24,10 +27,13 @@ APlayerCharacter::APlayerCharacter()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
+	// Lock on targeting
+	LockOnTargetingComp = CreateDefaultSubobject<ULockOnTargeting>(TEXT("LockOnTargetingComponent"));
+
 	// Class Defaults
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
 
+	// Initialize Variables
 	StartMovingCounter = StartMovingDelay;
 }
 
@@ -38,14 +44,13 @@ void APlayerCharacter::BeginPlay()
 	
 
 	APlayerController* PC = Cast<APlayerController>(Controller);
+	if (!PC) return;
 
-	if (PC) {
-		UEnhancedInputLocalPlayerSubsystem* subsystem =
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
-		
-		if (subsystem)
-			subsystem->AddMappingContext(InputMappingContext, 0);
-	}
+	UEnhancedInputLocalPlayerSubsystem* subsystem =
+		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
+	if (!subsystem) return;
+
+	subsystem->AddMappingContext(InputMappingContext, 0);
 }
 
 // Called every frame
@@ -67,16 +72,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	// Cast to Enhanced Input Component
 	UEnhancedInputComponent* enhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (!enhancedInput) return;
 
 	// Bind the input action event to a method
-	if (enhancedInput) {
-		enhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
-		enhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::StartJump);
-		enhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-	}
+	enhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
+	enhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::StartJump);
+	enhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
+	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::StartLockOnTargeting);
+	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopLockOnTargeting);
 }
 
 
+// Helper method for Move() which checks if player just started moving from idle and if switching directions
 void APlayerCharacter::CalculateMoveStateChanges(const FVector& playerForward) {
 
 	// *** Start Moving Delay
@@ -112,7 +119,7 @@ void APlayerCharacter::CalculateMoveStateChanges(const FVector& playerForward) {
 }
 
 
-/* Input: Moves player forwards, backwards, left, and right */
+// Moves player relative to camera
 void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	FVector2D moveInput = Value.Get<FVector2D>();
@@ -153,18 +160,50 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	}
 }
 
-/* Input: Applies jump force when player presses jump input */
+// Applies jump force when player presses jump input
 void APlayerCharacter::StartJump() {
-
 	Jump();
 }
 
-/* Input: Rotates player camera left, right, up, and down */
+// Rotates player camera left, right, up, and down 
 void APlayerCharacter::Look(const FInputActionValue& Value) {
 
 	FVector2D lookVector = Value.Get<FVector2D>();
 
 	AddControllerYawInput(lookVector.X);	// Look left/right
 	AddControllerPitchInput(-lookVector.Y);	// Look up/down (inverted)
+}
+
+
+void APlayerCharacter::StartLockOnTargeting() {
+
+	if (GetCharacterMovement()->IsFalling()) return;
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,                  // Key (-1 means add a new message)
+			5.0f,                // Duration (in seconds)
+			FColor::Yellow,      // Text color
+			TEXT("Calling StartTargeting()") // Message
+		);
+	}
+
+	LockOnTargetingComp->StartTargeting();
+}
+
+void APlayerCharacter::StopLockOnTargeting() {
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,                  // Key (-1 means add a new message)
+			5.0f,                // Duration (in seconds)
+			FColor::Yellow,      // Text color
+			TEXT("Calling StopTargeting()") // Message
+		);
+	}
+
+	LockOnTargetingComp->StopTargeting();
 }
 

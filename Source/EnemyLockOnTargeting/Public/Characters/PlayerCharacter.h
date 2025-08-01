@@ -1,4 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/*
+* Author: Eyan Martucci
+* Description: Manages player input and basic movement
+*/
 
 #pragma once
 
@@ -9,9 +12,6 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
-/**
- * In charge of player input and actions
- */
 
 UCLASS()
 class ENEMYLOCKONTARGETING_API APlayerCharacter : public ACharacter
@@ -39,11 +39,14 @@ public:
 protected:
 
 	// *** Components
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditAnywhere, Category = "Components")	// Visible and editable 
 	class USpringArmComponent* SpringArm;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditAnywhere, Category = "Components")	// Visible and editable
 	class UCameraComponent* Camera;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")	// Visible in editor; Blueprints can only read, no write perms 
+	class ULockOnTargeting* LockOnTargetingComp;
 
 	// *** Input
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -61,6 +64,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* AttackAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* LockOnTargetAction;
+
 	// *** Movement Settings
 	FVector InputDir = FVector::ForwardVector;
 	float StartMovingCounter = 0.0f;
@@ -77,6 +83,8 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void StartJump();
 	void Look(const FInputActionValue& Value);
+	void StartLockOnTargeting();
+	void StopLockOnTargeting();
 
 	void CalculateMoveStateChanges(const FVector& PlayerForward);
 
