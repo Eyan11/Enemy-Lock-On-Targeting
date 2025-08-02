@@ -5,10 +5,10 @@
 
 #include "Characters/PlayerCharacter.h"
 
-#include "Camera/CameraComponent.h"						// Camera
 #include "GameFramework/SpringArmComponent.h"			// Spring Arm
-#include "Components/LockOnTargeting.h"					// Lock on targeting
+#include "Camera/CameraComponent.h"						// Camera
 #include "GameFramework/CharacterMovementComponent.h"	// Character Movement Component
+#include "Components/LockOnTargeting.h"					// Lock on targeting
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -58,11 +58,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// *** Player Rotation
-	FRotator TargetRotation = InputDir.Rotation();
-	FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
-		TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
-	SetActorRotation(NewRotation);
+	UpdatePlayerRotation();
 }
 
 // Called to bind functionality to input
@@ -81,7 +77,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::StartLockOnTargeting);
 	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopLockOnTargeting);
 }
-
 
 // Helper method for Move() which checks if player just started moving from idle and if switching directions
 void APlayerCharacter::CalculateMoveStateChanges(const FVector& playerForward) {
@@ -124,15 +119,17 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	FVector2D moveInput = Value.Get<FVector2D>();
 
-	// If grounded or no input or input is too small, exit function
+	// *** Check For Special Cases
 	if (GetCharacterMovement()->IsFalling() || moveInput.Size() < InputDeadzone) {
 		bIsDelayingMovement = false;
-		return;
+		return;									// No movement if falling or small input
 	}
 
 	FVector playerForward = GetActorForwardVector();
+	CalculateMoveStateChanges(playerForward);	// Check to delay movement or switch directions
 
-	// Get camera XY vectors
+
+	// *** Calculate Input Direction Relative to Camera
 	FVector camForward = Camera->GetForwardVector();
 	camForward.Z = 0.0f;
 	camForward.Normalize();
@@ -141,22 +138,21 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	camRight.Z = 0.0f;
 	camRight.Normalize();
 
-	// Get input direction in reference to camera
 	InputDir = (camForward * moveInput.Y) + (camRight * moveInput.X);
 	InputDir.Normalize();
 
-	// Checks for start moving delay and switching directions
-	CalculateMoveStateChanges(playerForward);
+	if (bIsDelayingMovement) return;				// Don't apply movement if delaying movement
 
-	// Apply movement
-	if (!bIsDelayingMovement) {
-
-		// If switching directions, move in input direction
-		if(bIsSwitchingDir)
-			AddMovementInput(InputDir, moveInput.Size());
-		// Otherwise move in player forward direction
-		else
-			AddMovementInput(playerForward, moveInput.Size());
+	// *** Apply Movement
+	if (bIsSwitchingDir) {
+		AddMovementInput(InputDir, moveInput.Size());		// Switch directions movement
+	}
+	else if (bIsHoldingLockOnTargetingInput) {
+		AddMovementInput(camForward, moveInput.Y);			// Targeting movement
+		AddMovementInput(camRight, moveInput.X);
+	}
+	else {
+		AddMovementInput(playerForward, moveInput.Size());	// Normal movement
 	}
 }
 
@@ -168,42 +164,55 @@ void APlayerCharacter::StartJump() {
 // Rotates player camera left, right, up, and down 
 void APlayerCharacter::Look(const FInputActionValue& Value) {
 
-	FVector2D lookVector = Value.Get<FVector2D>();
+	FVector2D lookInput = Value.Get<FVector2D>();
 
-	AddControllerYawInput(lookVector.X);	// Look left/right
-	AddControllerPitchInput(-lookVector.Y);	// Look up/down (inverted)
+	// *** Apply Look
+	if (!LockOnTargetingComp->bIsTargeting) {	// Let component handle look when targeting
+		AddControllerYawInput(CameraSensitivity * lookInput.X);
+		AddControllerPitchInput(CameraSensitivity * -lookInput.Y);
+	}
+
+	// *** Give Lock On Targeting Component Look Input
+	if(bIsHoldingLockOnTargetingInput && !lookInput.IsNearlyZero())
+		LockOnTargetingComp->OnLookInput(lookInput);
 }
 
-
+// Starts lock on targeting
 void APlayerCharacter::StartLockOnTargeting() {
+	bIsHoldingLockOnTargetingInput = true;
 
-	if (GetCharacterMovement()->IsFalling()) return;
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,                  // Key (-1 means add a new message)
-			5.0f,                // Duration (in seconds)
-			FColor::Yellow,      // Text color
-			TEXT("Calling StartTargeting()") // Message
-		);
-	}
-
-	LockOnTargetingComp->StartTargeting();
+	LockOnTargetingComp->OnTargetingInputStart();
 }
 
+// Ends lock on targeting
 void APlayerCharacter::StopLockOnTargeting() {
+	bIsHoldingLockOnTargetingInput = false;
+	InputDir = GetActorForwardVector();			// When returning to normal movement, face forward
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,                  // Key (-1 means add a new message)
-			5.0f,                // Duration (in seconds)
-			FColor::Yellow,      // Text color
-			TEXT("Calling StopTargeting()") // Message
-		);
-	}
-
-	LockOnTargetingComp->StopTargeting();
+	LockOnTargetingComp->OnTargetingInputEnd();
 }
 
+// Locks player rotation every frame depending on lock on targeting mode
+void APlayerCharacter::UpdatePlayerRotation() {
+
+	// *** Lock Rotation on Actor Target
+	if (bIsHoldingLockOnTargetingInput && LockOnTargetingComp->bIsTargeting) {
+
+		if (!LockOnTargetingComp->TargetedActor) return;	// Stop if actor is destroyed
+
+		FRotator TargetRotation =
+			(LockOnTargetingComp->TargetedActor->GetActorLocation() - GetActorLocation()).Rotation();
+		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
+			TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
+		SetActorRotation(NewRotation);
+	}
+	// *** Rotate to Move Direction
+	else if(!bIsHoldingLockOnTargetingInput) {
+
+		FRotator TargetRotation = InputDir.Rotation();
+		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
+			TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
+		SetActorRotation(NewRotation);
+	}
+	// If holding targeting input but not targeting an actor, don't rotate player
+}

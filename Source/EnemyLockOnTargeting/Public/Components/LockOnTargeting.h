@@ -1,6 +1,7 @@
 /*
 * Author: Eyan Martucci
-* Description: 
+* Description: Manages the lock on targeting system which checks for nearby targets
+*	and makes sure the player and target are in view of the camera.
 */
 
 #pragma once
@@ -34,13 +35,23 @@ public:
 
 public:
 
-	void StartTargeting();
-	void StopTargeting();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if currently targeting an actor
+	bool bIsTargeting = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if camera is rotating to player forward direction
+	bool bIsCameraResetting = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// The actor that is being targeted (null if none)
+	AActor* TargetedActor = nullptr;
+
+	void OnTargetingInputStart();			// Starts either targeting or camera reset
+	void OnTargetingInputEnd();				// Cancels the lock on the current target
+	void OnLookInput(FVector2D LookInput);	// Checks to stop camera reset or adjust targeting offset angle
 
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")		// Gameplay tag to indicate if an actor is targetable
-	FGameplayTag TargetableTag;
+	FGameplayTag TargetableTag;								
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")		// The object types that can be targeted
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
@@ -48,20 +59,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")		// Actors that will be ignored when checking for targets (self is already added)
 	TArray<AActor*> ActorsToIgnore;
 
-	UPROPERTY(EditAnywhere, Category = "Targeting")		// The max targeting distance
-	float TargetRadius = 1000.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")		// The max distance between the player and target
+	float MaxTargetingDistance = 1000.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if currently targeting an actor
-	bool bIsTargeting = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The speed at which the camera rotates to its target
+	float CameraRotationSpeed = 8.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// The actor that is being targeted (null if none)
-	AActor* targetedActor = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The speed of camera rotation from input when targeting
+	float TargetingCameraSensitivity = 0.4f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The angle relative to player to offset the camera when entering targeting mode
+	float DefaultTargetingOffsetAngle = -30.0f;
 
 private:
 
-	class UCameraComponent* Camera;
+	class USpringArmComponent* SpringArm;		// Refernce to player spring arm component
+	class APlayerController* PlayerController;	// Reference to player controller
 
-	AActor* GetNearestTarget();
+	AActor* PlayerActor;				// Reference to the player actor (owner)
+	FRotator TargetRotation;			// The current target rotation for either targeting or camera reset
+	FRotator TargetingOffsetRotation;	// The offset from player rotation that the spring arm is when targeting
+	float defaultSpringArmLength;		// The initialspring arm target arm length set in player blueprint
+
+	AActor* GetNearestTarget();					// Returns closest targetable actor in proximity
+	void UpdateCameraReset(float DeltaTime);	// Rotates camera to player forward direction
+	void UpdateTargeting();						// Updates spring arm and camera to keep player and enemy in view
+	void CancelTargeting();						// Stops targeting actor
 
 };

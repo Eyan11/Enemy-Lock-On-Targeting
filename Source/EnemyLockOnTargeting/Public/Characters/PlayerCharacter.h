@@ -39,13 +39,13 @@ public:
 protected:
 
 	// *** Components
-	UPROPERTY(EditAnywhere, Category = "Components")	// Visible and editable 
+	UPROPERTY(EditAnywhere, Category = "Components")
 	class USpringArmComponent* SpringArm;
 
-	UPROPERTY(EditAnywhere, Category = "Components")	// Visible and editable
+	UPROPERTY(EditAnywhere, Category = "Components")
 	class UCameraComponent* Camera;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")	// Visible in editor; Blueprints can only read, no write perms 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class ULockOnTargeting* LockOnTargetingComp;
 
 	// *** Input
@@ -67,6 +67,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* LockOnTargetAction;
 
+	bool bIsHoldingLockOnTargetingInput = false;
+
 	// *** Movement Settings
 	FVector InputDir = FVector::ForwardVector;
 	float StartMovingCounter = 0.0f;
@@ -80,13 +82,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
 	float StartMovingDelay = 0.2f;
 
+	// *** Camera Settings
+	UPROPERTY(EditDefaultsOnly, Category = "Camera Settings")
+	float CameraSensitivity = 0.7f;
+
+	// *** Functions
+	
+	// Input
 	void Move(const FInputActionValue& Value);
 	void StartJump();
 	void Look(const FInputActionValue& Value);
 	void StartLockOnTargeting();
 	void StopLockOnTargeting();
 
+	// Helper
 	void CalculateMoveStateChanges(const FVector& PlayerForward);
+	void UpdatePlayerRotation();
 
 
 };
