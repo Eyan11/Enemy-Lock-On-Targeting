@@ -13,6 +13,7 @@
 #include "Engine/World.h"						// For GetWorld()
 #include "GameFramework/SpringArmComponent.h"	// Spring Arm
 #include "Kismet/GameplayStatics.h"				// For GetPlayerController
+#include "UI/TargetingArrow.h"					// For TargetingArrow Actor
 
 // Sets default values for this component's properties
 ULockOnTargeting::ULockOnTargeting()
@@ -25,6 +26,7 @@ ULockOnTargeting::ULockOnTargeting()
 	// *** Initialize Variables
 	PlayerActor = GetOwner();
 	ActorsToIgnore.Add(PlayerActor);	// Don't target self
+	TargetingOffsetRotation = FRotator::ZeroRotator;
 	TargetingOffsetRotation.Yaw = DefaultTargetingOffsetAngle;
 }
 
@@ -37,17 +39,39 @@ void ULockOnTargeting::BeginPlay()
 	
 	// *** Get References
 	SpringArm = PlayerActor->FindComponentByClass<USpringArmComponent>();
-	defaultSpringArmLength = SpringArm->TargetArmLength;
+	DefaultSpringArmLength = SpringArm->TargetArmLength;
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
 	// DEBUG
-	if (SpringArm && PlayerController) {
+	if (SpringArm && PlayerController && TargetingArrowClass) {
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Got all references"));
 	}
 	else {
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference"));
+	}
+
+
+	// *** Spawn Targeting Arrow
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	TargetingArrow = GetWorld()->SpawnActor<ATargetingArrow>(
+		TargetingArrowClass,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		SpawnParams
+	);
+
+	// DEBUG
+	if (TargetingArrow) {
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Spawned Targeting Arrow"));
+	}
+	else {
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Did Not Spawn Targeting Arrow"));
 	}
 }
 
@@ -61,6 +85,10 @@ void ULockOnTargeting::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	// *** Update Lock on Targeting
 	if (bIsTargeting)
 		UpdateTargeting();
+
+	// *** Update Spring Arm to Default Values
+	else if (bIsCleaningUpTargeting)
+		UpdateTargetingCleanup();
 	
 	// *** Update Camera Reset
 	else if (bIsCameraResetting)
@@ -77,6 +105,8 @@ void ULockOnTargeting::OnTargetingInputStart() {
 	// *** Start Lock On Targeting
 	if (TargetedActor) {		// If there is a target to lock onto
 		bIsTargeting = true;
+		bIsCleaningUpTargeting = false;
+		TargetingArrow->SetTarget(TargetedActor);
 	}
 
 	// *** Start Camera Reset
@@ -107,19 +137,62 @@ void ULockOnTargeting::UpdateTargeting() {
 		return;
 	}
 
-	// *** Update Spring Arm
 	
-	// Place spring arm base position in between player and target
-	SpringArm->TargetOffset = (TargetedActor->GetActorLocation() - PlayerActor->GetActorLocation()) / 2;
+	// *** Update Spring Arm Target Offset
+	FVector targetOffset = (TargetedActor->GetActorLocation() - PlayerActor->GetActorLocation()) / 2;
 
-	// Adjust the length of the spring arm so player and target stay in view
-	SpringArm->TargetArmLength = 500 + SpringArm->TargetOffset.Length();
+	FVector interpolatedOffset = FMath::VInterpTo(SpringArm->TargetOffset,
+		targetOffset, GetWorld()->GetDeltaSeconds(), SpringArmInterpSpeed);
+
+	SpringArm->TargetOffset = interpolatedOffset;
 
 
-	// *** Update Camera
+	// *** Update Spring Arm Length
+	float targetLength = 500 + targetOffset.Length();
+
+	float interpolatedLength = FMath::FInterpTo(SpringArm->TargetArmLength,
+		targetLength, GetWorld()->GetDeltaSeconds(), SpringArmInterpSpeed);
+
+	SpringArm->TargetArmLength = interpolatedLength;
+	
+
+	// *** Update Camera Rotation
 	TargetRotation = TargetingOffsetRotation;
 	TargetRotation.Yaw += PlayerActor->GetActorRotation().Yaw;
-	PlayerController->SetControlRotation(TargetRotation);	// Set rotation to player forward + offset
+
+	FRotator interpolatedRot = FMath::RInterpTo(PlayerController->GetControlRotation(),
+		TargetRotation, GetWorld()->GetDeltaSeconds(), CameraRotationSpeed);
+
+	PlayerController->SetControlRotation(interpolatedRot);
+}
+
+
+// Smoothly updates spring arm target offset and target arm length back to default values
+void ULockOnTargeting::UpdateTargetingCleanup() {
+
+	// *** Checked if Reached Target
+	if (SpringArm->TargetOffset.IsNearlyZero(0.1) &&
+		SpringArm->TargetArmLength < DefaultSpringArmLength + 0.1) {
+
+		SpringArm->TargetOffset = FVector::ZeroVector;
+		SpringArm->TargetArmLength = DefaultSpringArmLength;
+		bIsCleaningUpTargeting = false;
+		return;
+	}
+
+	// *** Update Spring Arm Target Offset
+	FVector interpolatedOffset = FMath::VInterpTo(SpringArm->TargetOffset,
+		FVector::ZeroVector, GetWorld()->GetDeltaSeconds(), SpringArmInterpSpeed);
+
+	SpringArm->TargetOffset = interpolatedOffset;
+
+
+	// *** Update Spring Arm Length
+	float interpolatedLength = FMath::FInterpTo(SpringArm->TargetArmLength,
+		DefaultSpringArmLength, GetWorld()->GetDeltaSeconds(), SpringArmInterpSpeed);
+
+	SpringArm->TargetArmLength = interpolatedLength;
+
 }
 
 
@@ -127,9 +200,11 @@ void ULockOnTargeting::UpdateTargeting() {
 void ULockOnTargeting::OnTargetingInputEnd() {
 
 	bIsTargeting = false;
+	bIsCleaningUpTargeting = true;		// Smoothly update spring arm to default values
 	TargetedActor = nullptr;
-	SpringArm->TargetOffset = FVector::ZeroVector;
-	SpringArm->TargetArmLength = defaultSpringArmLength;
+	TargetingOffsetRotation = FRotator::ZeroRotator;
+	TargetingOffsetRotation.Yaw = DefaultTargetingOffsetAngle;
+	TargetingArrow->HideArrow();
 }
 
 

@@ -8,7 +8,8 @@ public class EnemyLockOnTargeting : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", 
+			"GameplayTags", "Paper2D" });	// Added GameplayTags and Paper2D
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

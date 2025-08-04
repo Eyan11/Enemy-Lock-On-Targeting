@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description: Manages player input and basic movement
+* Description: Manages player input, movement, and camera rotation
 */
 
 #include "Characters/PlayerCharacter.h"

@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description: Manages player input and basic movement
+* Description: Manages player input, movement, and camera rotation
 */
 
 #pragma once
@@ -98,6 +98,5 @@ protected:
 	// Helper
 	void CalculateMoveStateChanges(const FVector& PlayerForward);
 	void UpdatePlayerRotation();
-
 
 };
