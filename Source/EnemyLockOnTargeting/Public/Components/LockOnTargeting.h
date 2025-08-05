@@ -46,19 +46,24 @@ public:
 
 	void OnTargetingInputStart();			// Starts either targeting or camera reset
 	void OnTargetingInputEnd();				// Cancels the lock on the current target
+	void OnSwitchDirectionalTargetInput(bool bGetRight);	// Switches targets to the next closest target on the left or right
 	void OnLookInput(FVector2D LookInput);	// Checks to stop camera reset or adjust targeting offset angle
 
 private:
 
 	class USpringArmComponent* SpringArm;		// Pointer to player spring arm component
+	class UCameraComponent* Camera;				// Pointer to player camera
 	class APlayerController* PlayerController;	// Pointer to player controller
 	class ATargetingArrow* TargetingArrow;		// Pointer to the 2D targeting arrow actor
 
 	AActor* PlayerActor;				// Pointer to the player actor (owner)
+	AActor* PreviousTargetedActor;		// The last actor to be targeted
 	FRotator TargetRotation;			// The current target rotation for either targeting or camera reset
 	FRotator TargetingOffsetRotation;	// The offset from player rotation that the spring arm is when targeting
 	float DefaultSpringArmLength;		// The initialspring arm target arm length set in player blueprint
+	float SwitchTargetsTimer;			// Tracks time after releasing the targeting button
 	bool bIsCleaningUpTargeting = false;// True if spring arm is still returning to default values after targeting is over
+	bool bCanSwitchTargets = false;		// True if the player can get a different target when pressing the switch target button
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Gameplay tag to indicate if an actor is targetable
 		FGameplayTag TargetableTag;
@@ -78,6 +83,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The speed at which the spring arm moves to its target
 		float SpringArmInterpSpeed = 8.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The time frame from releasing to pressing the targeting button will get a different target
+		float SwitchTargetsTimeFrame = 0.5f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The speed at which the camera rotates to its target
 		float CameraRotationSpeed = 8.0f;
 
@@ -85,9 +93,11 @@ private:
 		float TargetingCameraSensitivity = 0.4f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The angle relative to player to offset the camera when entering targeting mode
-		float DefaultTargetingOffsetAngle = -30.0f;
+		float DefaultTargetingYawOffset = -30.0f;
 
+	TArray<AActor*> GetAllTargetsInRange();		// Returns all actors with targetable tag within sphere overlap
 	AActor* GetNearestTarget();					// Returns closest targetable actor in proximity
+	AActor* GetNextTargetInDirection(bool bCheckRight);	// Returns the next closest target to the left or right of current target
 	void UpdateCameraReset(float DeltaTime);	// Rotates camera to player forward direction
 	void UpdateTargeting();						// Updates spring arm and camera to keep player and enemy in view
 	void UpdateTargetingCleanup();				// Updates spring arm to return to default values after targeting is over

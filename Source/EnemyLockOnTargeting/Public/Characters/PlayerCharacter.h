@@ -67,6 +67,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* LockOnTargetAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* SwitchToLeftTargetAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* SwitchToRightTargetAction;
+
 	bool bIsHoldingLockOnTargetingInput = false;
 
 	// *** Movement Settings
@@ -94,6 +100,8 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void StartLockOnTargeting();
 	void StopLockOnTargeting();
+	void SwitchToLeftTarget();
+	void SwitchToRightTarget();
 
 	// Helper
 	void CalculateMoveStateChanges(const FVector& PlayerForward);

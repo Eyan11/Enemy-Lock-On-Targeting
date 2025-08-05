@@ -76,6 +76,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::StartLockOnTargeting);
 	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopLockOnTargeting);
+	enhancedInput->BindAction(SwitchToLeftTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToLeftTarget);
+	enhancedInput->BindAction(SwitchToRightTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToRightTarget);
 }
 
 // Helper method for Move() which checks if player just started moving from idle and if switching directions
@@ -190,6 +192,16 @@ void APlayerCharacter::StopLockOnTargeting() {
 	InputDir = GetActorForwardVector();			// When returning to normal movement, face forward
 
 	LockOnTargetingComp->OnTargetingInputEnd();
+}
+
+// Switches current target to the closest target to the left of current one
+void APlayerCharacter::SwitchToLeftTarget() {
+	LockOnTargetingComp->OnSwitchDirectionalTargetInput(false);
+}
+
+// Switches current target to the closest target to the right of current one
+void APlayerCharacter::SwitchToRightTarget() {
+	LockOnTargetingComp->OnSwitchDirectionalTargetInput(true);
 }
 
 // Locks player rotation every frame depending on lock on targeting mode

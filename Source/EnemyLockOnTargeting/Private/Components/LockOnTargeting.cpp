@@ -11,7 +11,8 @@
 #include "GameplayTagContainer.h"				// For FGameplayTag
 #include "GameFramework/Actor.h"				// For AActor
 #include "Engine/World.h"						// For GetWorld()
-#include "GameFramework/SpringArmComponent.h"	// Spring Arm
+#include "GameFramework/SpringArmComponent.h"	// For Spring Arm
+#include "Camera/CameraComponent.h"				// For Camera
 #include "Kismet/GameplayStatics.h"				// For GetPlayerController
 #include "UI/TargetingArrow.h"					// For TargetingArrow Actor
 
@@ -27,7 +28,8 @@ ULockOnTargeting::ULockOnTargeting()
 	PlayerActor = GetOwner();
 	ActorsToIgnore.Add(PlayerActor);	// Don't target self
 	TargetingOffsetRotation = FRotator::ZeroRotator;
-	TargetingOffsetRotation.Yaw = DefaultTargetingOffsetAngle;
+	TargetingOffsetRotation.Yaw = DefaultTargetingYawOffset;
+	SwitchTargetsTimer = SwitchTargetsTimeFrame;
 }
 
 
@@ -39,11 +41,12 @@ void ULockOnTargeting::BeginPlay()
 	
 	// *** Get References
 	SpringArm = PlayerActor->FindComponentByClass<USpringArmComponent>();
+	Camera = PlayerActor->FindComponentByClass<UCameraComponent>();
 	DefaultSpringArmLength = SpringArm->TargetArmLength;
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
 	// DEBUG
-	if (SpringArm && PlayerController && TargetingArrowClass) {
+	if (SpringArm && Camera && PlayerController && TargetingArrowClass) {
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Got all references"));
 	}
@@ -93,6 +96,16 @@ void ULockOnTargeting::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	// *** Update Camera Reset
 	else if (bIsCameraResetting)
 		UpdateCameraReset(DeltaTime);
+
+	// *** Reduce Switch Targets Timer
+	if (bCanSwitchTargets) {
+		SwitchTargetsTimer -= DeltaTime;
+
+		if (SwitchTargetsTimer <= 0) {		// If timer expires, don't allow target switching
+			bCanSwitchTargets = false;
+			PreviousTargetedActor = nullptr;
+		}
+	}
 }
 
 
@@ -104,6 +117,15 @@ void ULockOnTargeting::OnTargetingInputStart() {
 
 	// *** Start Lock On Targeting
 	if (TargetedActor) {		// If there is a target to lock onto
+
+		// *** Check to Flip Camera Yaw
+		float dotProdResult = FVector::DotProduct
+			(PlayerActor->GetActorRightVector(), Camera->GetForwardVector());
+
+		if (dotProdResult > 0)						// If camera is on left side of player (acute angle)
+			TargetingOffsetRotation.Yaw = -DefaultTargetingYawOffset;	// Flip default yaw to other side
+
+		// *** Initialize Variables
 		bIsTargeting = true;
 		bIsCleaningUpTargeting = false;
 		TargetingArrow->SetTarget(TargetedActor);
@@ -114,6 +136,14 @@ void ULockOnTargeting::OnTargetingInputStart() {
 		TargetRotation = PlayerActor->GetActorRotation();
 		bIsCameraResetting = true;
 	}
+}
+
+
+// Sets target to the next closest target to the left or right of current one
+void ULockOnTargeting::OnSwitchDirectionalTargetInput(bool bGetRight) {
+
+	TargetedActor = GetNextTargetInDirection(bGetRight);
+	TargetingArrow->SetTarget(TargetedActor);
 }
 
 
@@ -201,55 +231,140 @@ void ULockOnTargeting::OnTargetingInputEnd() {
 
 	bIsTargeting = false;
 	bIsCleaningUpTargeting = true;		// Smoothly update spring arm to default values
+	bCanSwitchTargets = true;
+	PreviousTargetedActor = TargetedActor;
 	TargetedActor = nullptr;
+	SwitchTargetsTimer = SwitchTargetsTimeFrame;
+
 	TargetingOffsetRotation = FRotator::ZeroRotator;
-	TargetingOffsetRotation.Yaw = DefaultTargetingOffsetAngle;
+	TargetingOffsetRotation.Yaw = DefaultTargetingYawOffset;
 	TargetingArrow->HideArrow();
 }
 
 
-// Returns the closest actor with targetable gameplay tag in sphere overlap
-AActor* ULockOnTargeting::GetNearestTarget() {
-
+// Returns all actors with targetable tag in range of the sphere overlap
+TArray<AActor*> ULockOnTargeting::GetAllTargetsInRange() {
 	TArray<AActor*> nearbyActors;
 
 	// *** Get All Actors in Sphere Overlap
 	float sphereRadius = MaxTargetingDistance / 2.0f;
+
 	FVector sphereStart = PlayerActor->GetActorLocation() +				// Make sphere infront of player
 		(PlayerActor->GetActorForwardVector() * sphereRadius);
+
 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), sphereStart,
 		sphereRadius, ObjectTypes, nullptr, ActorsToIgnore, nearbyActors);
 
 	// DEBUG
 	#if WITH_EDITOR								// Only draw in editor, not in final build
-		DrawDebugSphere(GetWorld(), sphereStart,
+	DrawDebugSphere(GetWorld(), sphereStart,
 			sphereRadius, 15, FColor::Green, false, 1.0f, 0, 1.5f);
 	#endif
 
+	TArray<AActor*> targetableActors;
 
-	AActor* closestActor = nullptr;				// Closest actor
-	float maxTargetingSqrDist = MaxTargetingDistance * MaxTargetingDistance;
-	float closestDist = maxTargetingSqrDist;	// Distance to closest actor
-	float curDist = FLT_MAX;					// Distance of current actor in loop
+	// *** Find All Actors in Overlap With Targetable Tag
+	for (AActor* actor : nearbyActors) {
 
-	// *** Find Closest Actor in Overlap With Targetable Tag
-	for(AActor* actor : nearbyActors) {
-
+		// *** Check if Implementing Gameplay Tags Interface
 		IGameplayTagAssetInterface* tagInterface = Cast<IGameplayTagAssetInterface>(actor);
-		if (!tagInterface) continue;			// Check if actor implements the gameplay tags interface
+		if (!tagInterface) continue;
 
-		if (tagInterface->HasMatchingGameplayTag(TargetableTag)) {	// Check if actor has targetable tag
+		// *** Check if Actor has Targetable Tag
+		if (tagInterface->HasMatchingGameplayTag(TargetableTag))
+			targetableActors.Add(actor);
+	}
 
-			curDist = actor->GetSquaredDistanceTo(PlayerActor);
+	return targetableActors;
+}
 
-			if (curDist < closestDist) {		// Found new closest actor
-				closestDist = curDist;
-				closestActor = actor;
-			}
+
+// Returns the closest actor with targetable gameplay tag in sphere overlap. 
+//	If switching targets by distance instead of direction, then it gets the next closest actor.
+AActor* ULockOnTargeting::GetNearestTarget() {
+
+	// *** Get All Actors With Targetable Tag in Sphere Overlap
+	TArray<AActor*> targetableActors = GetAllTargetsInRange();
+	bool bRemovedPreviousTarget = false;
+
+	// *** Check if Switching Targets
+	if (bCanSwitchTargets && PreviousTargetedActor && targetableActors.Contains(PreviousTargetedActor)) {
+		targetableActors.Remove(PreviousTargetedActor);
+		bRemovedPreviousTarget = true;
+	}
+
+	// *** Initialize Variables
+	AActor* closestActor = nullptr;										// Current closest actor in loop
+	float closestDist = MaxTargetingDistance * MaxTargetingDistance;	// Distance to closest actor
+	float curDist = FLT_MAX;											// Distance of current actor in loop
+
+	// *** Find Closest Target
+	for(AActor* actor : targetableActors) {
+
+		curDist = actor->GetSquaredDistanceTo(PlayerActor);
+
+		if (curDist < closestDist) {	// Found new closest actor
+			closestDist = curDist;
+			closestActor = actor;
 		}
 	}
 
-	return closestActor;
+	// *** Return Next Target
+	if (!closestActor && bRemovedPreviousTarget)	// If previous target is the only nearby targetable actor	
+		return PreviousTargetedActor;
+	else											// If there is another targetable actor besides previous target
+		return closestActor;
+}
+
+
+// Returns the next closest target to the left or right of the current target
+AActor* ULockOnTargeting::GetNextTargetInDirection(bool bCheckRight) {
+
+	// *** Get All Actors With Targetable Tag in Sphere Overlap
+	TArray<AActor*> targetableActors = GetAllTargetsInRange();
+
+	// *** Ignore Current Actor
+	if (TargetedActor && targetableActors.Contains(TargetedActor))
+		targetableActors.Remove(TargetedActor);
+
+	// *** Initialize Variables
+	float curDotProd;											// Dot product of the current actor in loop
+	AActor* closestActor = nullptr;								// Current closest actor
+	float closestDotProd = bCheckRight ? FLT_MAX : -FLT_MAX;	// Dot product of closest actor
+
+	// DEBUG
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1, 5.0f, FColor::Blue,
+			TEXT("Number of targetable actors = ") + FString::FromInt(targetableActors.Num()));
+	}
+
+	// *** Find Closest Target
+	for (AActor* actor : targetableActors) {
+
+		// *** Get Dot Product Between Player Right and Target Direction
+		curDotProd = FVector::DotProduct
+			(PlayerActor->GetActorRightVector(), actor->GetActorLocation() - PlayerActor->GetActorLocation());
+		
+		// *** Check if Target is Next Closest to the Right
+		if (bCheckRight && curDotProd > 0 && curDotProd < closestDotProd) {
+			closestActor = actor;
+			closestDotProd = curDotProd;
+		}
+
+		// *** Check if Target is Next Closest to the Left
+		else if (!bCheckRight && curDotProd < 0 && curDotProd > closestDotProd) {
+			closestActor = actor;
+			closestDotProd = curDotProd;
+		}
+	}
+
+	// *** Return Next Target
+	if (!closestActor)
+		return TargetedActor;
+	else
+		return closestActor;
 }
 
 
@@ -284,6 +399,9 @@ void ULockOnTargeting::OnLookInput(FVector2D LookInput) {
 		// Make new input look apart of the offset
 		TargetingOffsetRotation.Yaw += LookInput.X * TargetingCameraSensitivity;
 		TargetingOffsetRotation.Pitch += LookInput.Y * TargetingCameraSensitivity;
+
+		// Clamp camera pitch between -90 and 90 degrees
+		TargetingOffsetRotation.Pitch = FMath::Clamp(TargetingOffsetRotation.Pitch, -89.999f, 89.999f);
 	}
 }
 
