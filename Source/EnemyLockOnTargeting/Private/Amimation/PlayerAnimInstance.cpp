@@ -1,9 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+/*
+* Author: Eyan Martucci
+* Description: Manages player animations
+*/
 
 #include "Amimation/PlayerAnimInstance.h"
 
 #include "GameFramework/Character.h"				// For Character ref
+#include "Characters/PlayerCharacter.h"				// For APlayerCharacter
 #include "GameFramework/PawnMovementComponent.h"	// For IsFalling check
 
 
@@ -12,12 +15,24 @@ void UPlayerAnimInstance::NativeInitializeAnimation() {
 	Super::NativeInitializeAnimation();		// Still run event for parent class
 
 	APawn* PawnOwner = TryGetPawnOwner();
-	if (!PawnOwner)
+
+	// DEBUG
+	if (!PawnOwner && GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1, 5.0f, FColor::Red,
+			TEXT("PawnOwner Reference is null in PlayerAnimInstance.cpp"));
 		return;
+	}
 	
-	Character = Cast<ACharacter>(PawnOwner);
-	if (!Character)
+	Player = Cast<APlayerCharacter>(PawnOwner);
+
+	// DEBUG
+	if (!Player && GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1, 5.0f, FColor::Red,
+			TEXT("Player Reference is null in PlayerAnimInstance.cpp"));
 		return;
+	}
 }
 
 
@@ -25,12 +40,13 @@ void UPlayerAnimInstance::NativeInitializeAnimation() {
 void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	Super::NativeUpdateAnimation(DeltaSeconds);		// Still run event for parent class
 	
-	if (!Character) {
-		// print error message
-		UE_LOG(LogTemp, Error, TEXT("PlayerAnimInstance: Character is null in NativeUpdateAnimation"));
-		return;
-	}
+	if (!Player) return;
 
-	Speed = Character->GetVelocity().Size();
-	bIsFalling = Character->GetMovementComponent()->IsFalling();
+	FVector playerVel = Player->GetVelocity();
+	Speed = playerVel.Size();
+	VerticalSpeed = FVector::DotProduct(Player->GetActorForwardVector(), playerVel);
+	HorizontalSpeed = FVector::DotProduct(Player->GetActorRightVector(), playerVel);
+
+	bIsFalling = Player->GetMovementComponent()->IsFalling();
+	bIsTargeting = Player->IsTargetingInputHeld();
 }

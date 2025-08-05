@@ -1,4 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/*
+* Author: Eyan Martucci
+* Description: Manages player animations
+*/
 
 #pragma once
 
@@ -6,9 +9,6 @@
 #include "Animation/AnimInstance.h"
 #include "PlayerAnimInstance.generated.h"
 
-/**
- * Controls player animations
- */
 
 UCLASS()
 class ENEMYLOCKONTARGETING_API UPlayerAnimInstance : public UAnimInstance
@@ -25,13 +25,22 @@ public:
 private:
 	// References
 	UPROPERTY()
-	class ACharacter* Character = nullptr;
+	class APlayerCharacter* Player = nullptr;
 
 	// Movement Variables
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	float Speed = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
+	float HorizontalSpeed = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
+	float VerticalSpeed = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsFalling = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting", meta = (AllowPrivateAccess = "true"))
+	bool bIsTargeting = false;
 	
 };

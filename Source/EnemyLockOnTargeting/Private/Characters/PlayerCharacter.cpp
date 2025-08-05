@@ -80,55 +80,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(SwitchToRightTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToRightTarget);
 }
 
-// Helper method for Move() which checks if player just started moving from idle and if switching directions
-void APlayerCharacter::CalculateMoveStateChanges(const FVector& playerForward) {
-
-	// *** Start Moving Delay
-
-	// If player just started moving from idle
-	if (!bIsDelayingMovement && GetVelocity().IsNearlyZero()) {
-
-		// If player is NOT facing input direction, delay movement
-		if (FVector::DotProduct(InputDir, playerForward) < 0.80) {
-			bIsDelayingMovement = true;
-			StartMovingCounter = StartMovingDelay;
-		}
-	}
-
-	// If player is waiting for delay to end before moving from idle
-	if (bIsDelayingMovement) {
-		StartMovingCounter -= GetWorld()->GetDeltaSeconds();
-
-		if (StartMovingCounter <= 0)
-			bIsDelayingMovement = false;
-	}
-
-
-	// *** Switch Directions
-
-	// If player wants to move in opposite direction
-	if (!bIsSwitchingDir && FVector::DotProduct(InputDir, playerForward) < -0.80)
-		bIsSwitchingDir = true;
-
-	// If player has finished switching directions
-	if (bIsSwitchingDir && FVector::DotProduct(InputDir, playerForward) > 0.97)
-		bIsSwitchingDir = false;
-}
-
 
 // Moves player relative to camera
 void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	FVector2D moveInput = Value.Get<FVector2D>();
+	moveInput = moveInput.GetSafeNormal();		// Prevent faster diagonal movement
 
 	// *** Check For Special Cases
 	if (GetCharacterMovement()->IsFalling() || moveInput.Size() < InputDeadzone) {
 		bIsDelayingMovement = false;
 		return;									// No movement if falling or small input
 	}
-
-	FVector playerForward = GetActorForwardVector();
-	CalculateMoveStateChanges(playerForward);	// Check to delay movement or switch directions
 
 
 	// *** Calculate Input Direction Relative to Camera
@@ -141,21 +104,67 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	camRight.Normalize();
 
 	InputDir = (camForward * moveInput.Y) + (camRight * moveInput.X);
-	InputDir.Normalize();
+	InputDir.Normalize();						// Prevent faster diagonal movement
 
-	if (bIsDelayingMovement) return;				// Don't apply movement if delaying movement
+	FVector playerForward = GetActorForwardVector();
 
-	// *** Apply Movement
-	if (bIsSwitchingDir) {
-		AddMovementInput(InputDir, moveInput.Size());		// Switch directions movement
+
+	// *** Apply Targeting Movement
+	if (bIsHoldingTargetingInput) {
+
+		// *** Move at Normal Speed When Moving Forward
+		if (FVector::DotProduct(InputDir, playerForward) > 0.71)
+			AddMovementInput(InputDir, moveInput.Size());
+
+		// *** Otherwise Move at Reduced Speed
+		else
+			AddMovementInput(InputDir, TargetingSpeedMultiplier * moveInput.Size());
 	}
-	else if (bIsHoldingLockOnTargetingInput) {
-		AddMovementInput(camForward, moveInput.Y);			// Targeting movement
-		AddMovementInput(camRight, moveInput.X);
-	}
+
+	// *** Apply Normal Movement
 	else {
-		AddMovementInput(playerForward, moveInput.Size());	// Normal movement
+		// *** Check for Move Delay or Switch Directions
+		CalculateMoveStateChanges(playerForward);
+
+		if(bIsSwitchingDir)
+			AddMovementInput(InputDir, moveInput.Size());		// Switch directions movement
+		else if(!bIsDelayingMovement)
+			AddMovementInput(playerForward, moveInput.Size());	// Normal movement
 	}
+}
+
+// Helper method for Move() which checks if player just started moving from idle and if switching directions
+void APlayerCharacter::CalculateMoveStateChanges(FVector playerForward) {
+
+	// *** Check to Start Moving Delay
+	if (!bIsDelayingMovement && GetVelocity().IsNearlyZero()) {		// If idle and not already delaying movement
+
+		if (FVector::DotProduct(InputDir, playerForward) < 0.80) {	// If not facing input direction, delay movement
+			bIsDelayingMovement = true;
+			StartMovingCounter = StartMovingDelay;
+			return;													// Cannot switch directions while delaying movement
+		}
+	}
+
+	// *** Check to End Moving Delay
+	if (bIsDelayingMovement) {
+		StartMovingCounter -= GetWorld()->GetDeltaSeconds();
+
+		if (StartMovingCounter <= 0)			// If move delay counter expired, allow movement
+			bIsDelayingMovement = false;
+		return;									// Cannot switch directions while delaying movement
+	}
+
+
+	float dotProd = FVector::DotProduct(InputDir, playerForward);
+
+	// *** Check to Start Switching Directions
+	if (!bIsSwitchingDir && dotProd < -0.80)	// If input is in opposite direction
+		bIsSwitchingDir = true;
+
+	// *** Check to Stop Switching Directions
+	if (bIsSwitchingDir && dotProd > 0.99)		// If input is in forward direction
+		bIsSwitchingDir = false;
 }
 
 // Applies jump force when player presses jump input
@@ -175,20 +184,20 @@ void APlayerCharacter::Look(const FInputActionValue& Value) {
 	}
 
 	// *** Give Lock On Targeting Component Look Input
-	if(bIsHoldingLockOnTargetingInput && !lookInput.IsNearlyZero())
+	if(bIsHoldingTargetingInput && !lookInput.IsNearlyZero())
 		LockOnTargetingComp->OnLookInput(lookInput);
 }
 
 // Starts lock on targeting
 void APlayerCharacter::StartLockOnTargeting() {
-	bIsHoldingLockOnTargetingInput = true;
+	bIsHoldingTargetingInput = true;
 
 	LockOnTargetingComp->OnTargetingInputStart();
 }
 
 // Ends lock on targeting
 void APlayerCharacter::StopLockOnTargeting() {
-	bIsHoldingLockOnTargetingInput = false;
+	bIsHoldingTargetingInput = false;
 	InputDir = GetActorForwardVector();			// When returning to normal movement, face forward
 
 	LockOnTargetingComp->OnTargetingInputEnd();
@@ -208,7 +217,7 @@ void APlayerCharacter::SwitchToRightTarget() {
 void APlayerCharacter::UpdatePlayerRotation() {
 
 	// *** Lock Rotation on Actor Target
-	if (bIsHoldingLockOnTargetingInput && LockOnTargetingComp->bIsTargeting) {
+	if (bIsHoldingTargetingInput && LockOnTargetingComp->bIsTargeting) {
 
 		if (!LockOnTargetingComp->TargetedActor) return;	// Stop if actor is destroyed
 
@@ -219,7 +228,7 @@ void APlayerCharacter::UpdatePlayerRotation() {
 		SetActorRotation(NewRotation);
 	}
 	// *** Rotate to Move Direction
-	else if(!bIsHoldingLockOnTargetingInput) {
+	else if(!bIsHoldingTargetingInput) {
 
 		FRotator TargetRotation = InputDir.Rotation();
 		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),

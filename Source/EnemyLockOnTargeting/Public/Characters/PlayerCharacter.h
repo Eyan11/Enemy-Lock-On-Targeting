@@ -36,6 +36,10 @@ public:
 
 //*********************************************************
 
+public:
+
+	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
+
 protected:
 
 	// *** Components
@@ -73,7 +77,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* SwitchToRightTargetAction;
 
-	bool bIsHoldingLockOnTargetingInput = false;
+	bool bIsHoldingTargetingInput = false;
 
 	// *** Movement Settings
 	FVector InputDir = FVector::ForwardVector;
@@ -83,10 +87,15 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
 	float RotationLerp = 12.0f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
 	float InputDeadzone = 0.2f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
 	float StartMovingDelay = 0.2f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	float TargetingSpeedMultiplier = 0.5f;
 
 	// *** Camera Settings
 	UPROPERTY(EditDefaultsOnly, Category = "Camera Settings")
@@ -104,7 +113,7 @@ protected:
 	void SwitchToRightTarget();
 
 	// Helper
-	void CalculateMoveStateChanges(const FVector& PlayerForward);
+	void CalculateMoveStateChanges(FVector playerForward);
 	void UpdatePlayerRotation();
 
 };
