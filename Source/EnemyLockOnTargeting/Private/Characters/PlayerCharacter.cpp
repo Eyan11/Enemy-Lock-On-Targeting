@@ -7,8 +7,11 @@
 
 #include "GameFramework/SpringArmComponent.h"			// Spring Arm
 #include "Camera/CameraComponent.h"						// Camera
-#include "GameFramework/CharacterMovementComponent.h"	// Character Movement Component
-#include "Components/LockOnTargeting.h"					// Lock on targeting
+#include "GameFramework/CharacterMovementComponent.h"	// Character Movement
+#include "Components/LockOnTargeting.h"					// Lock on Targeting
+#include "Components/PlayerMeleeCombat.h"				// Melee Combat
+#include "Components/SkeletalMeshComponent.h"			// Skeletal Mesh (to hold sword)
+
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -27,8 +30,19 @@ APlayerCharacter::APlayerCharacter()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	// Lock on targeting
-	LockOnTargetingComp = CreateDefaultSubobject<ULockOnTargeting>(TEXT("LockOnTargetingComponent"));
+	// Sword Skeletal Mesh
+	SwordSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sword Skeletal Mesh"));
+	SwordSkeletalMesh->SetupAttachment(GetMesh(), TEXT("RightHandWeapon"));	
+	SwordSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Shield Static Mesh
+	ShieldStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shield Static Mesh"));
+	ShieldStaticMesh->SetupAttachment(GetMesh(), TEXT("LeftHandShield"));
+	ShieldStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Custom Components
+	LockOnTargetingComp = CreateDefaultSubobject<ULockOnTargeting>(TEXT("Lock On Targeting Component"));
+	MeleeCombatComp = CreateDefaultSubobject<UPlayerMeleeCombat>(TEXT("Melee Combat Component"));
 
 	// Class Defaults
 	bUseControllerRotationYaw = false;
@@ -58,7 +72,36 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdatePlayerRotation();
+	if(bCanMove)
+		UpdatePlayerRotation();
+}
+
+// Locks player rotation every frame depending on lock on targeting mode
+void APlayerCharacter::UpdatePlayerRotation() {
+
+	// *** Lock Rotation on Actor Target
+	if (bIsHoldingTargetingInput && LockOnTargetingComp->bIsTargeting) {
+
+		if (!LockOnTargetingComp->TargetedActor) return;	// Stop if actor is destroyed
+
+		FRotator targetRotation =
+			(LockOnTargetingComp->TargetedActor->GetActorLocation() - GetActorLocation()).Rotation();
+		targetRotation.Pitch = 0.0f;
+		targetRotation.Roll = 0.0f;
+
+		FRotator newRotation = FMath::RInterpTo(GetActorRotation(),
+			targetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
+		SetActorRotation(newRotation);
+	}
+	// *** Rotate to Move Direction
+	else if (!bIsHoldingTargetingInput) {
+
+		FRotator TargetRotation = InputDir.Rotation();
+		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
+			TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
+		SetActorRotation(NewRotation);
+	}
+	// If holding targeting input but not targeting an actor, don't rotate player
 }
 
 // Called to bind functionality to input
@@ -78,12 +121,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(LockOnTargetAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopLockOnTargeting);
 	enhancedInput->BindAction(SwitchToLeftTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToLeftTarget);
 	enhancedInput->BindAction(SwitchToRightTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToRightTarget);
+	enhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::Attack);
 }
 
 
 // Moves player relative to camera
 void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
+	if (!bCanMove) return;
+
 	FVector2D moveInput = Value.Get<FVector2D>();
 	moveInput = moveInput.GetSafeNormal();		// Prevent faster diagonal movement
 
@@ -213,27 +259,18 @@ void APlayerCharacter::SwitchToRightTarget() {
 	LockOnTargetingComp->OnSwitchDirectionalTargetInput(true);
 }
 
-// Locks player rotation every frame depending on lock on targeting mode
-void APlayerCharacter::UpdatePlayerRotation() {
+// Starts attack animation on hitbox detection
+void APlayerCharacter::Attack() {
+	MeleeCombatComp->OnAttackInput();
+}
 
-	// *** Lock Rotation on Actor Target
-	if (bIsHoldingTargetingInput && LockOnTargetingComp->bIsTargeting) {
+// Stops player from moving and rotating
+void APlayerCharacter::StopMovement() {
+	bCanMove = false;
+	InputDir = GetActorForwardVector();		// Reset to default
+}
 
-		if (!LockOnTargetingComp->TargetedActor) return;	// Stop if actor is destroyed
-
-		FRotator TargetRotation =
-			(LockOnTargetingComp->TargetedActor->GetActorLocation() - GetActorLocation()).Rotation();
-		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
-			TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
-		SetActorRotation(NewRotation);
-	}
-	// *** Rotate to Move Direction
-	else if(!bIsHoldingTargetingInput) {
-
-		FRotator TargetRotation = InputDir.Rotation();
-		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(),
-			TargetRotation, GetWorld()->GetDeltaSeconds(), RotationLerp);
-		SetActorRotation(NewRotation);
-	}
-	// If holding targeting input but not targeting an actor, don't rotate player
+// Allows player to move and rotate
+void APlayerCharacter::ResumeMovement() {
+	bCanMove = true;
 }

@@ -25,8 +25,6 @@ ULockOnTargeting::ULockOnTargeting()
 
 
 	// *** Initialize Variables
-	PlayerActor = GetOwner();
-	ActorsToIgnore.Add(PlayerActor);	// Don't target self
 	TargetingOffsetRotation = FRotator::ZeroRotator;
 	TargetingOffsetRotation.Yaw = DefaultTargetingYawOffset;
 	SwitchTargetsTimer = SwitchTargetsTimeFrame;
@@ -40,19 +38,21 @@ void ULockOnTargeting::BeginPlay()
 
 	
 	// *** Get References
+	PlayerActor = GetOwner();
+	ActorsToIgnore.Add(PlayerActor);	// Don't target self
 	SpringArm = PlayerActor->FindComponentByClass<USpringArmComponent>();
 	Camera = PlayerActor->FindComponentByClass<UCameraComponent>();
 	DefaultSpringArmLength = SpringArm->TargetArmLength;
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
 	// DEBUG
-	if (SpringArm && Camera && PlayerController && TargetingArrowClass) {
+	if (PlayerActor && SpringArm && Camera && PlayerController && TargetingArrowClass) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Got all references"));
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Got all references in LockOnTargeting"));
 	}
 	else {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference in LockOnTargeting"));
 	}
 
 

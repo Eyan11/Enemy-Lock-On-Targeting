@@ -40,6 +40,10 @@ public:
 
 	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
 
+	void StopMovement();		// Stops player from moving and rotating
+	void ResumeMovement();		// Allows player to move and rotate
+
+
 protected:
 
 	// *** Components
@@ -48,9 +52,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Components")
 	class UCameraComponent* Camera;
-	
+
+	UPROPERTY(EditAnywhere, Category = "Components")
+	class USkeletalMeshComponent* SwordSkeletalMesh;
+
+	UPROPERTY(EditAnywhere, Category = "Components")
+	class UStaticMeshComponent* ShieldStaticMesh;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class ULockOnTargeting* LockOnTargetingComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UPlayerMeleeCombat* MeleeCombatComp;
 
 	// *** Input
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -66,9 +79,6 @@ protected:
 	class UInputAction* LookAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* AttackAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* LockOnTargetAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -76,6 +86,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* SwitchToRightTargetAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* AttackAction;
 
 	bool bIsHoldingTargetingInput = false;
 
@@ -97,6 +110,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
 	float TargetingSpeedMultiplier = 0.5f;
 
+	bool bCanMove = true;
+
 	// *** Camera Settings
 	UPROPERTY(EditDefaultsOnly, Category = "Camera Settings")
 	float CameraSensitivity = 0.7f;
@@ -111,6 +126,7 @@ protected:
 	void StopLockOnTargeting();
 	void SwitchToLeftTarget();
 	void SwitchToRightTarget();
+	void Attack();
 
 	// Helper
 	void CalculateMoveStateChanges(FVector playerForward);

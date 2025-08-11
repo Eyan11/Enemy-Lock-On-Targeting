@@ -36,18 +36,19 @@ public:
 public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if currently targeting an actor
-		bool bIsTargeting = false;
+	bool bIsTargeting = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if camera is rotating to player forward direction
-		bool bIsCameraResetting = false;
+	bool bIsCameraResetting = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// The actor that is being targeted (null if none)
-		AActor* TargetedActor = nullptr;
+	AActor* TargetedActor = nullptr;
 
 	void OnTargetingInputStart();			// Starts either targeting or camera reset
 	void OnTargetingInputEnd();				// Cancels the lock on the current target
 	void OnSwitchDirectionalTargetInput(bool bGetRight);	// Switches targets to the next closest target on the left or right
 	void OnLookInput(FVector2D LookInput);	// Checks to stop camera reset or adjust targeting offset angle
+
 
 private:
 
@@ -66,34 +67,34 @@ private:
 	bool bCanSwitchTargets = false;		// True if the player can get a different target when pressing the switch target button
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Gameplay tag to indicate if an actor is targetable
-		FGameplayTag TargetableTag;
+	FGameplayTag TargetableTag;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The object types that can be targeted
-		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Actors that will be ignored when checking for targets (self is already added)
-		TArray<AActor*> ActorsToIgnore;
+	TArray<AActor*> ActorsToIgnore;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Reference to BP_TargetingArrow so the blueprint subclass can be spawned
-		TSubclassOf<ATargetingArrow> TargetingArrowClass;
+	TSubclassOf<ATargetingArrow> TargetingArrowClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The max distance between the player and target
-		float MaxTargetingDistance = 1000.0f;
+	float MaxTargetingDistance = 1000.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The speed at which the spring arm moves to its target
-		float SpringArmInterpSpeed = 8.0f;
+	float SpringArmInterpSpeed = 8.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The time frame from releasing to pressing the targeting button will get a different target
-		float SwitchTargetsTimeFrame = 0.5f;
+	float SwitchTargetsTimeFrame = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The speed at which the camera rotates to its target
-		float CameraRotationSpeed = 8.0f;
+	float CameraRotationSpeed = 8.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The speed of camera rotation from input when targeting
-		float TargetingCameraSensitivity = 0.4f;
+	float TargetingCameraSensitivity = 0.4f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The angle relative to player to offset the camera when entering targeting mode
-		float DefaultTargetingYawOffset = -30.0f;
+	float DefaultTargetingYawOffset = -30.0f;
 
 	TArray<AActor*> GetAllTargetsInRange();		// Returns all actors with targetable tag within sphere overlap
 	AActor* GetNearestTarget();					// Returns closest targetable actor in proximity
