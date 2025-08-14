@@ -35,14 +35,28 @@ public:
 
 	void OnAttackInput();
 
+	void EnableAttackCollision();
+	void DisableAttackCollision();
+
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a normal attack
 	class UAnimMontage* NormalAttackMontage;
 
-	class APlayerCharacter* PlayerCharacter = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")	// The animation montage played when doing a normal attack
+	float SwordDamage = 20.0f;
+
+	UPROPERTY()
+	class APlayerCharacter* PlayerCharacter;
+
+	UPROPERTY()
+	class UCapsuleComponent* SwordCollision;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);	// Cleans up variables when normal attack finished (needs to be UFUNCTION)
+
+	UFUNCTION()
+	void OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 };

@@ -34,3 +34,16 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 }
 
+// In your character/actor source (.cpp)
+float AEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
+    class AController* EventInstigator, AActor* DamageCauser)
+{
+    float damageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Enemy Took Damage"));
+
+    return damageAmount;	// Return the actual damage applied
+}
+
+

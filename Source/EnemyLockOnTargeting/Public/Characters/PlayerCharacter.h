@@ -38,13 +38,16 @@ public:
 
 public:
 
-	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
-
 	void StopMovement();		// Stops player from moving and rotating
 	void ResumeMovement();		// Allows player to move and rotate
 
+	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
 
-protected:
+	class UPlayerMeleeCombat* GetMeleeCombatComponent() { return MeleeCombatComp; }
+	class UCapsuleComponent* GetSwordCollision() { return SwordCollision; }
+
+
+private:
 
 	// *** Components
 	UPROPERTY(EditAnywhere, Category = "Components")
@@ -57,12 +60,18 @@ protected:
 	class USkeletalMeshComponent* SwordSkeletalMesh;
 
 	UPROPERTY(EditAnywhere, Category = "Components")
+	class UCapsuleComponent* SwordCollision;
+
+	UPROPERTY(EditAnywhere, Category = "Components")
 	class UStaticMeshComponent* ShieldStaticMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(EditAnywhere, Category = "Components")
+	class UBoxComponent* ShieldCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	class ULockOnTargeting* LockOnTargetingComp;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	class UPlayerMeleeCombat* MeleeCombatComp;
 
 	// *** Input

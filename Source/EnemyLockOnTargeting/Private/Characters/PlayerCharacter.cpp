@@ -11,6 +11,8 @@
 #include "Components/LockOnTargeting.h"					// Lock on Targeting
 #include "Components/PlayerMeleeCombat.h"				// Melee Combat
 #include "Components/SkeletalMeshComponent.h"			// Skeletal Mesh (to hold sword)
+#include "Components/CapsuleComponent.h"				// Capsule Collision
+#include "Components/BoxComponent.h"					// Box Collision
 
 
 // Sets default values
@@ -30,15 +32,21 @@ APlayerCharacter::APlayerCharacter()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	// Sword Skeletal Mesh
+	// Sword and Shield Mesh
 	SwordSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sword Skeletal Mesh"));
 	SwordSkeletalMesh->SetupAttachment(GetMesh(), TEXT("RightHandWeapon"));	
 	SwordSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	// Shield Static Mesh
 	ShieldStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shield Static Mesh"));
 	ShieldStaticMesh->SetupAttachment(GetMesh(), TEXT("LeftHandShield"));
 	ShieldStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Sword and Shield Collision
+	SwordCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword Collision MAIN"));
+	SwordCollision->SetupAttachment(SwordSkeletalMesh);
+	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ShieldCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("Shield Collision"));
+	ShieldCollision->SetupAttachment(ShieldStaticMesh);
+	ShieldCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Custom Components
 	LockOnTargetingComp = CreateDefaultSubobject<ULockOnTargeting>(TEXT("Lock On Targeting Component"));
