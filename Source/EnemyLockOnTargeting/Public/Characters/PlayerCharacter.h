@@ -42,7 +42,6 @@ public:
 	void ResumeMovement();		// Allows player to move and rotate
 
 	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
-
 	class UPlayerMeleeCombat* GetMeleeCombatComponent() { return MeleeCombatComp; }
 	class UCapsuleComponent* GetSwordCollision() { return SwordCollision; }
 
@@ -50,28 +49,28 @@ public:
 private:
 
 	// *** Components
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class USpringArmComponent* SpringArm;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UCameraComponent* Camera;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class USkeletalMeshComponent* SwordSkeletalMesh;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UCapsuleComponent* SwordCollision;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UStaticMeshComponent* ShieldStaticMesh;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UBoxComponent* ShieldCollision;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class ULockOnTargeting* LockOnTargetingComp;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UPlayerMeleeCombat* MeleeCombatComp;
 
 	// *** Input
@@ -101,29 +100,27 @@ private:
 
 	bool bIsHoldingTargetingInput = false;
 
-	// *** Movement Settings
-	FVector InputDir = FVector::ForwardVector;
-	float StartMovingCounter = 0.0f;
-	bool bIsDelayingMovement = false;
-	bool bIsSwitchingDir = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
-	float RotationLerp = 12.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	// *** Settings
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
 	float InputDeadzone = 0.2f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
+	float CameraSensitivity = 0.7f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// Player rotation speed towards movement direction
+	float RotationLerp = 12.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
 	float StartMovingDelay = 0.2f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Movement Settings")
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting
 	float TargetingSpeedMultiplier = 0.5f;
 
+	FVector InputDir = FVector::ForwardVector;				// The last input direction
+	float StartMovingCounter = 0.0f;								
+	bool bIsDelayingMovement = false;
+	bool bIsSwitchingDir = false;
 	bool bCanMove = true;
-
-	// *** Camera Settings
-	UPROPERTY(EditDefaultsOnly, Category = "Camera Settings")
-	float CameraSensitivity = 0.7f;
 
 	// *** Functions
 	

@@ -116,23 +116,23 @@ void ULockOnTargeting::OnTargetingInputStart() {
 	TargetedActor = GetNearestTarget();
 
 	// *** Start Lock On Targeting
-	if (TargetedActor) {		// If there is a target to lock onto
+	if (TargetedActor) {			// If there is a target to lock onto
 
-		// *** Check to Flip Camera Yaw
+		// Check to flip camera Yaw
 		float dotProdResult = FVector::DotProduct
 			(PlayerActor->GetActorRightVector(), Camera->GetForwardVector());
 
-		if (dotProdResult > 0)						// If camera is on left side of player (acute angle)
-			TargetingOffsetRotation.Yaw = -DefaultTargetingYawOffset;	// Flip default yaw to other side
+		if (dotProdResult > 0)		// If camera is on left side of player (acute angle)
+			TargetingOffsetRotation.Yaw = -DefaultTargetingYawOffset;	// Flip default yaw to left side
 
-		// *** Initialize Variables
+		// Initialize variables
 		bIsTargeting = true;
 		bIsCleaningUpTargeting = false;
 		TargetingArrow->SetTarget(TargetedActor);
 	}
 
 	// *** Start Camera Reset
-	else {						// If there is no target to lock onto
+	else {							// If there is no target to lock onto
 		TargetRotation = PlayerActor->GetActorRotation();
 		bIsCameraResetting = true;
 	}
@@ -151,10 +151,16 @@ void ULockOnTargeting::OnSwitchDirectionalTargetInput(bool bGetRight) {
 void ULockOnTargeting::UpdateTargeting() {
 	
 	// *** Check to Stop Targeting
-	if (!TargetedActor || SpringArm->TargetArmLength > MaxTargetingDistance) {
+	if (!IsValid(TargetedActor) || SpringArm->TargetArmLength > MaxTargetingDistance) {
 		
 		// DEBUG
-		if (GEngine)
+		if (!IsValid(TargetedActor) && GEngine) {
+			GEngine->AddOnScreenDebugMessage(
+				-1, 5.0f, FColor::Yellow,
+				TEXT("Stopping Targeting, Targeted Actor is null"));
+		}
+		// DEBUG
+		else if (GEngine)
 		{
 			float distance = FVector::Distance(TargetedActor->GetActorLocation(), PlayerActor->GetActorLocation());
 			GEngine->AddOnScreenDebugMessage(
@@ -163,6 +169,7 @@ void ULockOnTargeting::UpdateTargeting() {
 				FString::SanitizeFloat(distance));
 		}
 		
+		// Stop targeting actor and start resetting camera
 		OnTargetingInputEnd();
 		return;
 	}
@@ -232,9 +239,14 @@ void ULockOnTargeting::OnTargetingInputEnd() {
 	bIsTargeting = false;
 	bIsCleaningUpTargeting = true;		// Smoothly update spring arm to default values
 	bCanSwitchTargets = true;
-	PreviousTargetedActor = TargetedActor;
-	TargetedActor = nullptr;
 	SwitchTargetsTimer = SwitchTargetsTimeFrame;
+
+	if (IsValid(TargetedActor))
+		PreviousTargetedActor = TargetedActor;
+	else
+		PreviousTargetedActor = nullptr;
+
+	TargetedActor = nullptr;
 
 	TargetingOffsetRotation = FRotator::ZeroRotator;
 	TargetingOffsetRotation.Yaw = DefaultTargetingYawOffset;
@@ -248,9 +260,9 @@ TArray<AActor*> ULockOnTargeting::GetAllTargetsInRange() {
 
 	// *** Get All Actors in Sphere Overlap
 	float sphereRadius = MaxTargetingDistance / 2.0f;
+	FVector camForward2D = Camera->GetForwardVector().GetSafeNormal2D();
 
-	FVector sphereStart = PlayerActor->GetActorLocation() +				// Make sphere infront of player
-		(PlayerActor->GetActorForwardVector() * sphereRadius);
+	FVector sphereStart = PlayerActor->GetActorLocation() + (camForward2D * sphereRadius);
 
 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), sphereStart,
 		sphereRadius, ObjectTypes, nullptr, ActorsToIgnore, nearbyActors);
@@ -260,6 +272,7 @@ TArray<AActor*> ULockOnTargeting::GetAllTargetsInRange() {
 	DrawDebugSphere(GetWorld(), sphereStart,
 			sphereRadius, 15, FColor::Green, false, 1.0f, 0, 1.5f);
 	#endif
+
 
 	TArray<AActor*> targetableActors;
 

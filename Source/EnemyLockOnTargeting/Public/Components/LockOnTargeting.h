@@ -11,7 +11,7 @@
 #include "GameplayTagContainer.h"		// For FGameplayTag UPROPERTY
 #include "LockOnTargeting.generated.h"
 
-
+class ATargetingArrow;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ENEMYLOCKONTARGETING_API ULockOnTargeting : public UActorComponent
@@ -35,14 +35,15 @@ public:
 
 public:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if currently targeting an actor
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")	// True if currently targeting an actor
 	bool bIsTargeting = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// True if camera is rotating to player forward direction
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")	// True if camera is rotating to player forward direction
 	bool bIsCameraResetting = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Targeting")	// The actor that is being targeted (null if none)
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting")	// The actor that is being targeted (null if none)
 	AActor* TargetedActor = nullptr;
+
 
 	void OnTargetingInputStart();			// Starts either targeting or camera reset
 	void OnTargetingInputEnd();				// Cancels the lock on the current target
@@ -51,20 +52,6 @@ public:
 
 
 private:
-
-	class USpringArmComponent* SpringArm;		// Pointer to player spring arm component
-	class UCameraComponent* Camera;				// Pointer to player camera
-	class APlayerController* PlayerController;	// Pointer to player controller
-	class ATargetingArrow* TargetingArrow;		// Pointer to the 2D targeting arrow actor
-
-	AActor* PlayerActor;				// Pointer to the player actor (owner)
-	AActor* PreviousTargetedActor;		// The last actor to be targeted
-	FRotator TargetRotation;			// The current target rotation for either targeting or camera reset
-	FRotator TargetingOffsetRotation;	// The offset from player rotation that the spring arm is when targeting
-	float DefaultSpringArmLength;		// The initialspring arm target arm length set in player blueprint
-	float SwitchTargetsTimer;			// Tracks time after releasing the targeting button
-	bool bIsCleaningUpTargeting = false;// True if spring arm is still returning to default values after targeting is over
-	bool bCanSwitchTargets = false;		// True if the player can get a different target when pressing the switch target button
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Gameplay tag to indicate if an actor is targetable
 	FGameplayTag TargetableTag;
@@ -79,7 +66,7 @@ private:
 	TSubclassOf<ATargetingArrow> TargetingArrowClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The max distance between the player and target
-	float MaxTargetingDistance = 1000.0f;
+	float MaxTargetingDistance = 2500.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The speed at which the spring arm moves to its target
 	float SpringArmInterpSpeed = 8.0f;
@@ -96,12 +83,26 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The angle relative to player to offset the camera when entering targeting mode
 	float DefaultTargetingYawOffset = -30.0f;
 
+
+	class USpringArmComponent* SpringArm;
+	class UCameraComponent* Camera;
+	class APlayerController* PlayerController;
+	ATargetingArrow* TargetingArrow;	// 2D arrow above targeted actor
+
+	AActor* PlayerActor;
+	AActor* PreviousTargetedActor;		// The last actor to be targeted
+	FRotator TargetRotation;			// The current target rotation for either targeting or camera reset
+	FRotator TargetingOffsetRotation;	// The offset from player rotation that the spring arm is when targeting
+	float DefaultSpringArmLength;		// The initialspring arm target arm length set in player blueprint
+	float SwitchTargetsTimer;			// Tracks time after releasing the targeting button
+	bool bIsCleaningUpTargeting = false;// True if spring arm is still returning to default values after targeting is over
+	bool bCanSwitchTargets = false;		// True if the player can get a different target when pressing the switch target button
+
 	TArray<AActor*> GetAllTargetsInRange();		// Returns all actors with targetable tag within sphere overlap
 	AActor* GetNearestTarget();					// Returns closest targetable actor in proximity
 	AActor* GetNextTargetInDirection(bool bCheckRight);	// Returns the next closest target to the left or right of current target
 	void UpdateCameraReset(float DeltaTime);	// Rotates camera to player forward direction
 	void UpdateTargeting();						// Updates spring arm and camera to keep player and enemy in view
 	void UpdateTargetingCleanup();				// Updates spring arm to return to default values after targeting is over
-	void CancelTargeting();						// Stops targeting actor
 
 };

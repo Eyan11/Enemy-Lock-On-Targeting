@@ -31,11 +31,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 
-	//*********************************************************
+//*********************************************************
 
 public:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tags")
+	UPROPERTY(EditDefaultsOnly, Category = "Tags")
 	FGameplayTagContainer GameplayTags;
 
 	// Required overrides for the interface
@@ -46,7 +46,7 @@ public:
 
 private:
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
-		class AController* EventInstigator, AActor* DamageCauser) override;
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UEnemyHealth* HealthComponent = nullptr;
 
 };

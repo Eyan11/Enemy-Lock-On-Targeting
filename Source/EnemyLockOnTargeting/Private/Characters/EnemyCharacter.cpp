@@ -4,6 +4,7 @@
 */
 
 #include "Characters/EnemyCharacter.h"
+#include "Components/EnemyHealth.h"		// Enemy Health Component
 
 // Sets default values
 AEnemyCharacter::AEnemyCharacter()
@@ -11,6 +12,8 @@ AEnemyCharacter::AEnemyCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// *** Custom Components
+	HealthComponent = CreateDefaultSubobject<UEnemyHealth>(TEXT("Health Component"));
 }
 
 // Called when the game starts or when spawned
@@ -33,17 +36,3 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
-
-// In your character/actor source (.cpp)
-float AEnemyCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
-    class AController* EventInstigator, AActor* DamageCauser)
-{
-    float damageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Enemy Took Damage"));
-
-    return damageAmount;	// Return the actual damage applied
-}
-
-

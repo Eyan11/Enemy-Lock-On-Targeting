@@ -25,7 +25,7 @@ void UPlayerMeleeCombat::BeginPlay()
 	// *** Check Montage Reference
 	if (!NormalAttackMontage) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Missing NormalAttackMontage reference in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Missing NormalAttackMontage reference in PlayerMeleeCombat"));
 	}
 
 	// *** Get Player Reference
@@ -39,7 +39,7 @@ void UPlayerMeleeCombat::BeginPlay()
 	SwordCollision = PlayerCharacter->GetSwordCollision();
 	if (!SwordCollision) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("SwordCollision is null in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("SwordCollision is null in PlayerMeleeCombat"));
 		return;
 	}
 
@@ -129,9 +129,6 @@ void UPlayerMeleeCombat::EnableAttackCollision() {
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter or SwordCollision is null in PlayerMeleeCombat"));
 		return;
 	}
-	
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Enabling Sword Collision"));
 
 	// *** Enable Sword Overlap Collision
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -146,9 +143,6 @@ void UPlayerMeleeCombat::DisableAttackCollision() {
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter or SwordCollision is null in PlayerMeleeCombat"));
 		return;
 	}
-	
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Disabling Sword Collision"));
 
 	// *** Disable Sword Collision
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
