@@ -7,11 +7,12 @@ public class EnemyLockOnTargeting : ModuleRules
 	public EnemyLockOnTargeting(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", 
-			"GameplayTags", "Paper2D" });	// Added GameplayTags and Paper2D
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+        // Added "GameplayTags", "Paper2D", "AIModule", "NavigationSystem"
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", 
+			"GameplayTags", "Paper2D", "AIModule", "NavigationSystem" });
+
+        PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

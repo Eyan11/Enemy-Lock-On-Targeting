@@ -3,10 +3,12 @@
 
 #include "Components/PlayerMeleeCombat.h"
 
-#include "Characters/PlayerCharacter.h"		// Player Character
-#include "Components/CapsuleComponent.h"	// Capsule Component
-#include "DrawDebugHelpers.h"				// Draw Debug Capsule
-#include "Kismet/GameplayStatics.h"			// Apply Damage
+#include "Characters/PlayerCharacter.h"					// Player Character
+#include "Components/CapsuleComponent.h"				// Capsule Component
+#include "DrawDebugHelpers.h"							// Draw Debug Capsule
+#include "Kismet/GameplayStatics.h"						// Apply Damage
+#include "GameFramework/CharacterMovementComponent.h"	// Character Movement (is falling)
+#include "Animation/PlayerAnimInstance.h"				// Player Anim Instance
 
 // Sets default values for this component's properties
 UPlayerMeleeCombat::UPlayerMeleeCombat()
@@ -23,9 +25,9 @@ void UPlayerMeleeCombat::BeginPlay()
 	Super::BeginPlay();
 
 	// *** Check Montage Reference
-	if (!NormalAttackMontage) {
+	if (!NormalAttackMontage || !JumpAttackMontage) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Missing NormalAttackMontage reference in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Missing reference to a montage in PlayerMeleeCombat"));
 	}
 
 	// *** Get Player Reference
@@ -33,6 +35,12 @@ void UPlayerMeleeCombat::BeginPlay()
 	if (!PlayerCharacter) {
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("PlayerCharacter reference is null in PlayerMeleeCombat"));
 		return;
+	}
+
+	// *** Get Player Anim Instance Reference
+	PlayerAnimInstance = Cast<UPlayerAnimInstance>(PlayerCharacter->GetMesh()->GetAnimInstance());
+	if (!PlayerAnimInstance) {
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("PlayerAnimInstance reference is null in PlayerMeleeCombat"));
 	}
 
 	// *** Get Sword Collision Reference
@@ -45,7 +53,6 @@ void UPlayerMeleeCombat::BeginPlay()
 
 	// *** Bind Sword Collision Overlap Method
 	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &UPlayerMeleeCombat::OnSwordBeginOverlap);
-
 }
 
 
@@ -76,6 +83,7 @@ void UPlayerMeleeCombat::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 			2.0f											// Line thickness
 		);
 	}
+
 }
 
 
@@ -88,22 +96,20 @@ void UPlayerMeleeCombat::OnAttackInput() {
 		return;
 	}
 
-	// *** Get Anim Instance
-	UAnimInstance* animInstance = PlayerCharacter->GetMesh()->GetAnimInstance();
-	if (!animInstance) {
+	if (!PlayerAnimInstance) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("animInstance is null in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerAnimInstance is null in PlayerMeleeCombat"));
 		return;
 	}
 
-	// *** Play Attack Montage
-	if (!bIsAttacking && !animInstance->Montage_IsPlaying(NormalAttackMontage)) {
+	if (bIsAttacking) return;	// Ignore if already attacking
 
-		animInstance->Montage_Play(NormalAttackMontage);
-		bIsAttacking = true;
-		PlayerCharacter->StopMovement();
-		animInstance->OnMontageEnded.AddDynamic(this, &UPlayerMeleeCombat::OnAttackMontageEnded);
-	}
+
+	// *** Play Normal Attack Montage
+	PlayerAnimInstance->Montage_Play(NormalAttackMontage);
+	bIsAttacking = true;
+	PlayerCharacter->StopMoveInput();
+	PlayerAnimInstance->OnMontageEnded.AddDynamic(this, &UPlayerMeleeCombat::OnAttackMontageEnded);
 }
 
 
@@ -117,7 +123,7 @@ void UPlayerMeleeCombat::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 	}
 
 	bIsAttacking = false;
-	PlayerCharacter->ResumeMovement();
+	PlayerCharacter->ResumeMoveInput();
 }
 
 

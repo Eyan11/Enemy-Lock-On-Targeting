@@ -13,6 +13,8 @@
 #include "Components/SkeletalMeshComponent.h"			// Skeletal Mesh (to hold sword)
 #include "Components/CapsuleComponent.h"				// Capsule Collision
 #include "Components/BoxComponent.h"					// Box Collision
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 
 
 // Sets default values
@@ -41,7 +43,7 @@ APlayerCharacter::APlayerCharacter()
 	ShieldStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Sword and Shield Collision
-	SwordCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword Collision MAIN"));
+	SwordCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword Collision"));
 	SwordCollision->SetupAttachment(SwordSkeletalMesh);
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ShieldCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("Shield Collision"));
@@ -57,7 +59,18 @@ APlayerCharacter::APlayerCharacter()
 
 	// Initialize Variables
 	StartMovingCounter = StartMovingDelay;
+
+	// Stimulus Source
+	StimulusSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Stimulus"));
+	if (!StimulusSource) {
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("StimulusSource is null in EnemyAIController"));
+		return;
+	}
+	StimulusSource->RegisterForSense(TSubclassOf<UAISense_Sight>());
+	StimulusSource->RegisterWithPerceptionSystem();
 }
+
 
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
@@ -80,7 +93,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(bCanMove)
+	if(bIsMoveInputAllowed)
 		UpdatePlayerRotation();
 }
 
@@ -136,7 +149,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 // Moves player relative to camera
 void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
-	if (!bCanMove) return;
+	if (!bIsMoveInputAllowed) return;
 
 	FVector2D moveInput = Value.Get<FVector2D>();
 	moveInput = moveInput.GetSafeNormal();		// Prevent faster diagonal movement
@@ -273,12 +286,12 @@ void APlayerCharacter::Attack() {
 }
 
 // Stops player from moving and rotating
-void APlayerCharacter::StopMovement() {
-	bCanMove = false;
+void APlayerCharacter::StopMoveInput() {
+	bIsMoveInputAllowed = false;
 	InputDir = GetActorForwardVector();		// Reset to default
 }
 
 // Allows player to move and rotate
-void APlayerCharacter::ResumeMovement() {
-	bCanMove = true;
+void APlayerCharacter::ResumeMoveInput() {
+	bIsMoveInputAllowed = true;
 }

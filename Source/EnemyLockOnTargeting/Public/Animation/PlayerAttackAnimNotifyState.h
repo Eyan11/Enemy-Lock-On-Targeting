@@ -23,4 +23,10 @@ public:
 
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, 
 		const FAnimNotifyEventReference& EventReference) override;
+
+private:
+
+	UPROPERTY()
+	class UPlayerMeleeCombat* MeleeCombatComp = nullptr;
+
 };

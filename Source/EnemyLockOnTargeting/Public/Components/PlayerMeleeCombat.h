@@ -30,9 +30,6 @@ public:
 
 public:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")	// True if player is performing an attack
-	bool bIsAttacking = false;
-
 	void OnAttackInput();
 
 	void EnableAttackCollision();
@@ -43,6 +40,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a normal attack
 	class UAnimMontage* NormalAttackMontage;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a jump or double jump attack
+	class UAnimMontage* JumpAttackMontage;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Attack")	// The animation montage played when doing a normal attack
 	float SwordDamage = 20.0f;
 
@@ -51,6 +51,11 @@ private:
 
 	UPROPERTY()
 	class UCapsuleComponent* SwordCollision;
+
+	UPROPERTY()
+	class UPlayerAnimInstance* PlayerAnimInstance;
+
+	bool bIsAttacking = false;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);	// Cleans up variables when normal attack finished (needs to be UFUNCTION)

@@ -42,8 +42,8 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 
 	FVector playerVel = PlayerCharacter->GetVelocity();
 	Speed = playerVel.Size();
-	VerticalSpeed = FVector::DotProduct(PlayerCharacter->GetActorForwardVector(), playerVel);
-	HorizontalSpeed = FVector::DotProduct(PlayerCharacter->GetActorRightVector(), playerVel);
+	ForwardSpeed = FVector::DotProduct(PlayerCharacter->GetActorForwardVector(), playerVel);
+	RightSpeed = FVector::DotProduct(PlayerCharacter->GetActorRightVector(), playerVel);
 
 	bIsFalling = PlayerCharacter->GetMovementComponent()->IsFalling();
 	bIsTargeting = PlayerCharacter->IsTargetingInputHeld();

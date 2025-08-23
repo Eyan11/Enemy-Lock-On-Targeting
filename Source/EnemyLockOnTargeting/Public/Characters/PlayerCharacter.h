@@ -38,12 +38,12 @@ public:
 
 public:
 
-	void StopMovement();		// Stops player from moving and rotating
-	void ResumeMovement();		// Allows player to move and rotate
+	void StopMoveInput();		// Stops player from moving and rotating
+	void ResumeMoveInput();		// Allows player to move and rotate
 
 	bool IsTargetingInputHeld() const { return bIsHoldingTargetingInput; }
 	class UPlayerMeleeCombat* GetMeleeCombatComponent() { return MeleeCombatComp; }
-	class UCapsuleComponent* GetSwordCollision() { return SwordCollision; }
+	class UCapsuleComponent* GetSwordCollision() {return SwordCollision; }
 
 
 private:
@@ -116,11 +116,12 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting
 	float TargetingSpeedMultiplier = 0.5f;
 
+	class UAIPerceptionStimuliSourceComponent* StimulusSource;	// Player is a stimulus source, meaning it can be detected by enemy AI perception
 	FVector InputDir = FVector::ForwardVector;				// The last input direction
 	float StartMovingCounter = 0.0f;								
 	bool bIsDelayingMovement = false;
 	bool bIsSwitchingDir = false;
-	bool bCanMove = true;
+	bool bIsMoveInputAllowed = true;
 
 	// *** Functions
 	

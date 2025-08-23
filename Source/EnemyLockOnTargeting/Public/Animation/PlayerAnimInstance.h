@@ -30,19 +30,19 @@ private:
 	class APlayerCharacter* PlayerCharacter = nullptr;
 
 	// Movement Variables
-	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))	// Magnitude of the player's 3D velocity
 	float Speed = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	float HorizontalSpeed = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))	// Speed of player relative to player right direction (pos is right, neg is left)
+	float RightSpeed = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	float VerticalSpeed = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))	// Speed of player relative to player forward direction (pos is forward, neg is backwards)
+	float ForwardSpeed = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))	// True when player is in the air
 	bool bIsFalling = false;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Targeting", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Category = "Targeting", meta = (AllowPrivateAccess = "true"))	// True when player is holding targeting input
 	bool bIsTargeting = false;
 	
 };

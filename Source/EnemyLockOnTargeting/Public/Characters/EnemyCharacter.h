@@ -39,14 +39,17 @@ public:
 	FGameplayTagContainer GameplayTags;
 
 	// Required overrides for the interface
-	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override
-	{
-		TagContainer.AppendTags(GameplayTags);
-	}
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override 
+		{ TagContainer.AppendTags(GameplayTags); }
+
+	void StartAttacking();
 
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UEnemyHealth* HealthComponent = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")	// Auto set in begin play. Controls enemy movement and perception
+	class AEnemyAIController* EnemyAIController = nullptr;
 
 };
