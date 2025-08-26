@@ -84,26 +84,11 @@ void AEnemyAIController::Tick(float DeltaTime) {
 
 void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 
-	switch (CurState) {
-
-		case EEnemyState::RoamIdle:
-			break;
-		case EEnemyState::Roaming:
-			break;
-		case EEnemyState::Chasing:
-			break;
-		case EEnemyState::ChaseIdle:
-			break;
-		case EEnemyState::Retreating:
-			break;
-		case EEnemyState::Attacking:
-			break;
-	}
-
 	CurState = NewState;
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("NEW STATE IS: ") + UEnum::GetValueAsString(CurState));
 
+	// *** Setup New State
 	switch (CurState) {
 
 		case EEnemyState::RoamIdle:
@@ -158,12 +143,24 @@ void AEnemyAIController::OnTargetPerception(AActor* Actor, FAIStimulus Stimulus)
 	if (!Cast<APlayerCharacter>(Actor))	return;		// Only update perception on player
 
 	if (Stimulus.WasSuccessfullySensed()) {			// If found target
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("FOUND TARGET"));
+
 		TargetActor = Actor;
 		SwitchEnemyState(EEnemyState::Chasing);
+		SetFocus(TargetActor);
+		EnemyCharacter->ToggleCombatMode(true);
 	}
 	else {											// If lost target
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Purple, TEXT("LOST TARGET"));
+
 		TargetActor = nullptr;
 		SwitchEnemyState(EEnemyState::RoamIdle);
+		ClearFocus(EAIFocusPriority::Gameplay);
+		EnemyCharacter->ToggleCombatMode(false);
 	}
 }
 

@@ -44,6 +44,8 @@ public:
 
 	void StartAttacking();
 
+	void ToggleCombatMode(bool bIsInCombatMode);
+
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
@@ -51,5 +53,18 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// Auto set in begin play. Controls enemy movement and perception
 	class AEnemyAIController* EnemyAIController = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	float RotationSpeed = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	float RoamingWalkSpeed = 400.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	float CombatWalkSpeed = 500.0f;
+
+	bool bIsInCombat = false;
+
+	void UpdateRotation();
 
 };

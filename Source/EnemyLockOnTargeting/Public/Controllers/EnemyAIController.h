@@ -38,6 +38,8 @@ public:
 	void ChaseTarget();
 	void RetreatFromTarget();
 
+	AActor* GetTargetActor() { return TargetActor; }
+
 protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
