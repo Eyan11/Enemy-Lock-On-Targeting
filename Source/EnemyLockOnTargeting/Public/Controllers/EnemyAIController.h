@@ -72,13 +72,13 @@ private:
 	float TimeUntilLosingSight = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The time the AI waits to roam again after reaching a roam target
-	float RoamWaitTime = 3.0f;
+	float RoamWaitTime = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The time the AI waits before chasing target
-	float ChaseWaitTime = 3.0f;
+	float ChaseWaitTime = 1.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
-	float MaxRetreatTime = 10.0f;
+	float MaxRetreatTime = 6.0f;
 
 	class UNavigationSystemV1* NavSystem = nullptr;
 	class AEnemyCharacter* EnemyCharacter = nullptr;

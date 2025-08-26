@@ -93,26 +93,34 @@ void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 
 		case EEnemyState::RoamIdle:
 			Timer = RoamWaitTime;
+			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
 			break;
 
 		case EEnemyState::Roaming:
+			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
 			MoveToRandomLocation();
 			break;
 
 		case EEnemyState::Chasing:
+			EnemyCharacter->SwitchMoveState(EEnemyMoveState::Chasing);
+			ClearFocus(EAIFocusPriority::Gameplay);
 			ChaseTarget();
 			break;
 
 		case EEnemyState::ChaseIdle:
 			Timer = ChaseWaitTime;
+			//SetFocus(TargetActor); // remove?
 			break;
 
 		case EEnemyState::Retreating:
+			EnemyCharacter->SwitchMoveState(EEnemyMoveState::Retreating);
 			Timer = MaxRetreatTime;
+			SetFocus(TargetActor);
 			RetreatFromTarget();
 			break;
 
 		case EEnemyState::Attacking:
+			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
 			EnemyCharacter->StartAttacking();
 			break;
 	}
@@ -147,20 +155,20 @@ void AEnemyAIController::OnTargetPerception(AActor* Actor, FAIStimulus Stimulus)
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("FOUND TARGET"));
 
+		// *** Start Combat Mode
 		TargetActor = Actor;
 		SwitchEnemyState(EEnemyState::Chasing);
-		SetFocus(TargetActor);
-		EnemyCharacter->ToggleCombatMode(true);
 	}
 	else {											// If lost target
 
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Purple, TEXT("LOST TARGET"));
 
+		// *** Stop Combat Mode
 		TargetActor = nullptr;
 		SwitchEnemyState(EEnemyState::RoamIdle);
 		ClearFocus(EAIFocusPriority::Gameplay);
-		EnemyCharacter->ToggleCombatMode(false);
+		EnemyCharacter->SwitchMoveState(EEnemyMoveState::Roaming);
 	}
 }
 

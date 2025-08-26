@@ -21,7 +21,7 @@ AEnemyCharacter::AEnemyCharacter()
 	AIControllerClass = AEnemyAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	GetCharacterMovement()->MaxWalkSpeed = RoamingWalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = RoamingSpeed;
 	GetCharacterMovement()->bOrientRotationToMovement = true;	// Let movement decide rotation
 	bUseControllerRotationYaw = false;							// Don't use controller rotation
 }
@@ -45,32 +45,41 @@ void AEnemyCharacter::BeginPlay()
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	/*
-	if (bIsInCombat)
-		UpdateRotation();
-	*/
 }
 
-void AEnemyCharacter::UpdateRotation() {
-
-	if (!EnemyAIController->GetTargetActor()) return;
-
-	FRotator targetRotation =
-		(EnemyAIController->GetTargetActor()->GetActorLocation() - GetActorLocation()).Rotation();
-	targetRotation.Pitch = 0.0f;
-	targetRotation.Roll = 0.0f;
-
-	FRotator newRotation = FMath::RInterpTo(EnemyAIController->GetControlRotation(),
-		targetRotation, GetWorld()->GetDeltaSeconds(), RotationSpeed);
-
-	GetController()->SetControlRotation(newRotation);
-}
 
 // Called to bind functionality to input
 void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+
+// Changes move speed depending on enemy state
+void AEnemyCharacter::SwitchMoveState(EEnemyMoveState newState) {
+
+	CurState = newState;
+
+	switch (CurState) {
+
+		case EEnemyMoveState::Roaming:
+			GetCharacterMovement()->MaxWalkSpeed = RoamingSpeed;
+			GetCharacterMovement()->bOrientRotationToMovement = true;	// Let movement decide rotation
+			bUseControllerRotationYaw = false;							// Don't use controller rotation
+			break;
+
+		case EEnemyMoveState::Chasing:
+			GetCharacterMovement()->MaxWalkSpeed = ChasingSpeed;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+			bUseControllerRotationYaw = true;
+			break;
+
+		case EEnemyMoveState::Retreating:
+			GetCharacterMovement()->MaxWalkSpeed = RetreatingSpeed;
+			GetCharacterMovement()->bOrientRotationToMovement = false;
+			bUseControllerRotationYaw = true;
+			break;
+	}
 }
 
 
@@ -84,27 +93,3 @@ void AEnemyCharacter::StartAttacking() {
 }
 
 
-void AEnemyCharacter::ToggleCombatMode(bool bIsInCombatMode) {
-	
-	if (bIsInCombatMode) {
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("Found Target in EnemyCharacter"));
-
-		bIsInCombat = true;
-		GetCharacterMovement()->MaxWalkSpeed = CombatWalkSpeed;
-		GetCharacterMovement()->bOrientRotationToMovement = false;	// Stop movement from deciding rotation
-		bUseControllerRotationYaw = true;							// Use controller rotation (SetControlRotation)
-	}
-	else {
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Purple, TEXT("Lost Target in EnemyCharacter"));
-
-		bIsInCombat = false;
-		GetCharacterMovement()->MaxWalkSpeed = RoamingWalkSpeed;
-		GetCharacterMovement()->bOrientRotationToMovement = true;	// Let movement decide rotation
-		bUseControllerRotationYaw = false;							// Don't use controller rotation
-	}
-	
-}

@@ -10,6 +10,16 @@
 #include "GameplayTagAssetInterface.h"	// To implement IGameplayTagAssetInterface
 #include "EnemyCharacter.generated.h"
 
+// Enemy State Enumeration (Simplified version from EnemyAIController to set movement speed)
+UENUM(BlueprintType)
+enum class EEnemyMoveState : uint8
+{
+	Roaming     UMETA(DisplayName = "Roaming"),
+	Chasing     UMETA(DisplayName = "Chasing"),
+	Retreating  UMETA(DisplayName = "Retreating"),
+};
+
+
 UCLASS()
 class ENEMYLOCKONTARGETING_API AEnemyCharacter : public ACharacter, public IGameplayTagAssetInterface
 {
@@ -43,8 +53,8 @@ public:
 		{ TagContainer.AppendTags(GameplayTags); }
 
 	void StartAttacking();
-
-	void ToggleCombatMode(bool bIsInCombatMode);
+	void SwitchMoveState(EEnemyMoveState newState);
+	bool GetIsInCombat() { return CurState != EEnemyMoveState::Roaming; }
 
 private:
 
@@ -55,16 +65,14 @@ private:
 	class AEnemyAIController* EnemyAIController = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float RotationSpeed = 10.0f;
+	float RoamingSpeed = 450.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float RoamingWalkSpeed = 400.0f;
+	float ChasingSpeed = 670.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float CombatWalkSpeed = 500.0f;
+	float RetreatingSpeed = 350.0f;
 
-	bool bIsInCombat = false;
-
-	void UpdateRotation();
+	EEnemyMoveState CurState = EEnemyMoveState::Roaming;
 
 };

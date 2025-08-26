@@ -5,7 +5,6 @@
 
 #include "Animation/PlayerAnimInstance.h"
 
-#include "GameFramework/Character.h"				// For Character ref
 #include "Characters/PlayerCharacter.h"				// For APlayerCharacter
 #include "GameFramework/PawnMovementComponent.h"	// For IsFalling check
 
@@ -17,9 +16,7 @@ void UPlayerAnimInstance::NativeBeginPlay() {
 
 	// DEBUG
 	if (!PawnOwner && GEngine) {
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.0f, FColor::Red,
-			TEXT("PawnOwner Reference is null in PlayerAnimInstance.cpp"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PawnOwner Reference is null in PlayerAnimInstance.cpp"));
 		return;
 	}
 
@@ -27,9 +24,7 @@ void UPlayerAnimInstance::NativeBeginPlay() {
 
 	// DEBUG
 	if (!PlayerCharacter && GEngine) {
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.0f, FColor::Red,
-			TEXT("Player Reference is null in PlayerAnimInstance.cpp"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Player Reference is null in PlayerAnimInstance.cpp"));
 		return;
 	}
 }
