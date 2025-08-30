@@ -180,12 +180,12 @@ void APlayerCharacter::Move(const FInputActionValue& Value) {
 	if (bIsHoldingTargetingInput) {
 
 		// *** Move at Normal Speed When Moving Forward
-		if (FVector::DotProduct(InputDir, playerForward) > 0.71)
-			AddMovementInput(InputDir, moveInput.Size());
+		if (FVector::DotProduct(InputDir, playerForward) > 0.9)
+			AddMovementInput(InputDir, TargetingForwardWalkSpeedMultiplier * moveInput.Size());
 
 		// *** Otherwise Move at Reduced Speed
 		else
-			AddMovementInput(InputDir, TargetingSpeedMultiplier * moveInput.Size());
+			AddMovementInput(InputDir, TargetingWalkSpeedMultiplier * moveInput.Size());
 	}
 
 	// *** Apply Normal Movement

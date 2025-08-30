@@ -113,10 +113,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
 	float StartMovingDelay = 0.2f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting
-	float TargetingSpeedMultiplier = 0.5f;
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting and not walking forward
+	float TargetingWalkSpeedMultiplier = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting and walking forward
+	float TargetingForwardWalkSpeedMultiplier = 0.8f;
+
+	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* StimulusSource;	// Player is a stimulus source, meaning it can be detected by enemy AI perception
+	
 	FVector InputDir = FVector::ForwardVector;				// The last input direction
 	float StartMovingCounter = 0.0f;								
 	bool bIsDelayingMovement = false;

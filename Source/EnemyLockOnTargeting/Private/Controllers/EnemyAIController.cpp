@@ -16,17 +16,15 @@ AEnemyAIController::AEnemyAIController() {
 
 	// *** Create Perception Component
 	AIPerceptionComp = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AI Perception Comp"));
-	if (!AIPerceptionComp) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AI Perception Component is null in EnemyAIController"));
+	if (!AIPerceptionComp && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AI Perception Component is null in EnemyAIController"));
 		return;
 	}
 
 	// *** Create Sight Config Component
 	SightConfigComp = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-	if (!SightConfigComp) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Sight Config Component is null in EnemyAIController"));
+	if (!SightConfigComp && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Sight Config Component is null in EnemyAIController"));
 		return;
 	}
 
@@ -88,16 +86,20 @@ void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("NEW STATE IS: ") + UEnum::GetValueAsString(CurState));
 
+	if (!EnemyCharacter && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("EnemyCharacter is null in EnemyAIController->SwitchEnemyState()"));
+		return;
+	}
+
 	// *** Setup New State
 	switch (CurState) {
 
 		case EEnemyState::RoamIdle:
-			Timer = RoamWaitTime;
-			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
+			Timer = FMath::FRandRange(
+				RoamBaseWaitTime - RoamWaitTimeRandomness, RoamBaseWaitTime + RoamWaitTimeRandomness);;
 			break;
 
 		case EEnemyState::Roaming:
-			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
 			MoveToRandomLocation();
 			break;
 
@@ -108,8 +110,8 @@ void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 			break;
 
 		case EEnemyState::ChaseIdle:
-			Timer = ChaseWaitTime;
-			//SetFocus(TargetActor); // remove?
+			Timer = FMath::FRandRange(
+				ChaseBaseWaitTime - ChaseWaitTimeRandomness, ChaseBaseWaitTime + ChaseWaitTimeRandomness);;
 			break;
 
 		case EEnemyState::Retreating:
@@ -120,7 +122,6 @@ void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 			break;
 
 		case EEnemyState::Attacking:
-			//ClearFocus(EAIFocusPriority::Gameplay); // remove?
 			EnemyCharacter->StartAttacking();
 			break;
 	}
@@ -164,6 +165,11 @@ void AEnemyAIController::OnTargetPerception(AActor* Actor, FAIStimulus Stimulus)
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Purple, TEXT("LOST TARGET"));
 
+		if (!EnemyCharacter && GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("EnemyCharacter is null in EnemyAIController->OnTargetPerception()"));
+			return;
+		}
+
 		// *** Stop Combat Mode
 		TargetActor = nullptr;
 		SwitchEnemyState(EEnemyState::RoamIdle);
@@ -176,9 +182,13 @@ void AEnemyAIController::OnTargetPerception(AActor* Actor, FAIStimulus Stimulus)
 // Moves to a random location in the nav mesh bounds within the roam radius
 void AEnemyAIController::MoveToRandomLocation() {
 
-	if (!NavSystem || !GetPawn()) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Navigation System or GetPawn is null in EnemyAIController"));
+	if (!NavSystem && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Navigation System is null in EnemyAIController"));
+		return;
+	}
+
+	if (!GetPawn() && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetPawn is null in EnemyAIController"));
 		return;
 	}
 
@@ -192,6 +202,11 @@ void AEnemyAIController::MoveToRandomLocation() {
 
 // Moves towards player until acceptance radius is reached or sight of player is lost
 void AEnemyAIController::ChaseTarget() {
+	if (!TargetActor && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("TargetActor is null in EnemyAIController->ChaseTarget()"));
+		return;
+	}
+
 	MoveToActor(TargetActor, 100.0f);
 }
 
@@ -199,17 +214,29 @@ void AEnemyAIController::ChaseTarget() {
 // Moves away from player until a certain distance is reached
 void AEnemyAIController::RetreatFromTarget() {
 
-	if (!EnemyCharacter || !TargetActor) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharacter or TargetActor is null in EnemyAIController"));
+	if (!GetPawn() && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetPawn() is null in EnemyAIController->RetreatFromTarget()"));
+		return;
+	}
+	if (!TargetActor && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("TargetActor is null in EnemyAIController->RetreatFromTarget()"));
 		return;
 	}
 	
 	// Get direction away from target
 	FVector retreatDirection = 
-		(EnemyCharacter->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal2D();
+		(GetPawn()->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal2D();
 
 	FVector retreatLocation = TargetActor->GetActorLocation() + (retreatDirection * RetreatDistance);
 
 	MoveToLocation(retreatLocation);
+}
+
+
+// Called when attack montage is finished
+void AEnemyAIController::OnFinishAttack() {
+
+	// If still in attack state (enemy could lose sight of player while attacking and start roaming)
+	if (CurState == EEnemyState::Attacking)
+		SwitchEnemyState(EEnemyState::Retreating);
 }

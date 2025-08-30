@@ -55,11 +55,20 @@ public:
 	void StartAttacking();
 	void SwitchMoveState(EEnemyMoveState newState);
 	bool GetIsInCombat() { return CurState != EEnemyMoveState::Roaming; }
+	void EnableAttackCollision();
+	void DisableAttackCollision();
+
 
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UEnemyHealth* HealthComponent = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UStaticMeshComponent* SwordStaticMesh = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UCapsuleComponent* SwordCollision = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// Auto set in begin play. Controls enemy movement and perception
 	class AEnemyAIController* EnemyAIController = nullptr;
@@ -73,6 +82,22 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float RetreatingSpeed = 350.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a jump or double jump attack
+	class UAnimMontage* AttackMontage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	float SwordDamage = 20.0f;
+
+	UPROPERTY()
+	class UEnemyAnimInstance* EnemyAnimInstance = nullptr;
+
+	UPROPERTY()
 	EEnemyMoveState CurState = EEnemyMoveState::Roaming;
 
+	UFUNCTION()
+	void OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnMontageEnd(UAnimMontage* Montage, bool bInterrupted);
 };

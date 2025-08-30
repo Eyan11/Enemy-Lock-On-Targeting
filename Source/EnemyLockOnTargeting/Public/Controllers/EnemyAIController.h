@@ -33,20 +33,12 @@ public:
 	AEnemyAIController();
 	virtual void Tick(float DeltaTime) override;
 
-	void SwitchEnemyState(EEnemyState NewState);
-	void MoveToRandomLocation();
-	void ChaseTarget();
-	void RetreatFromTarget();
-
-	AActor* GetTargetActor() { return TargetActor; }
+	void OnFinishAttack();
 
 protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
-
-	UFUNCTION()
-	void OnTargetPerception(AActor* Actor, FAIStimulus Stimulus);
 
 private:
 
@@ -66,23 +58,45 @@ private:
 	float LoseSightRadius = 2500.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The distance from the player that the AI will retreat to
-	float RetreatDistance = 800.0f;
+	float RetreatDistance = 600.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The time the AI will continue to follow the target after losing sight
 	float TimeUntilLosingSight = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The time the AI waits to roam again after reaching a roam target
-	float RoamWaitTime = 2.0f;
+	float RoamBaseWaitTime = 2.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The time the AI waits before chasing target
-	float ChaseWaitTime = 1.5f;
+	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The difference in randomness of roam wait time (wait time = base +/- randomness)
+	float RoamWaitTimeRandomness = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The base time the AI waits before chasing target
+	float ChaseBaseWaitTime = 1.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")	// The difference in randomness of chase wait time (wait time = base +/- randomness)
+	float ChaseWaitTimeRandomness = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
-	float MaxRetreatTime = 6.0f;
+	float MaxRetreatTime = 5.0f;
 
+	UPROPERTY()
 	class UNavigationSystemV1* NavSystem = nullptr;
+
+	UPROPERTY()
 	class AEnemyCharacter* EnemyCharacter = nullptr;
-	EEnemyState CurState = EEnemyState::RoamIdle;
-	float Timer = 0.0f;
+
+	UPROPERTY()
 	AActor* TargetActor;
+
+	UPROPERTY()
+	EEnemyState CurState = EEnemyState::RoamIdle;
+
+	float Timer = 0.0f;
+
+	UFUNCTION()
+	void OnTargetPerception(AActor* Actor, FAIStimulus Stimulus);
+
+	void SwitchEnemyState(EEnemyState NewState);
+	void MoveToRandomLocation();
+	void ChaseTarget();
+	void RetreatFromTarget();
 };

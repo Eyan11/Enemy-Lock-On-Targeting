@@ -5,10 +5,10 @@
 
 #include "Characters/PlayerCharacter.h"					// Player Character
 #include "Components/CapsuleComponent.h"				// Capsule Component
-#include "DrawDebugHelpers.h"							// Draw Debug Capsule
 #include "Kismet/GameplayStatics.h"						// Apply Damage
 #include "GameFramework/CharacterMovementComponent.h"	// Character Movement (is falling)
 #include "Animation/PlayerAnimInstance.h"				// Player Anim Instance
+#include "Characters/EnemyCharacter.h"					// Enemy Character
 
 // Sets default values for this component's properties
 UPlayerMeleeCombat::UPlayerMeleeCombat()
@@ -51,8 +51,9 @@ void UPlayerMeleeCombat::BeginPlay()
 		return;
 	}
 
-	// *** Bind Sword Collision Overlap Method
+	// *** Bind Sword Collision Overlap and Take Damage
 	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &UPlayerMeleeCombat::OnSwordBeginOverlap);
+	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UPlayerMeleeCombat::OnTakeDamage);
 }
 
 
@@ -60,30 +61,6 @@ void UPlayerMeleeCombat::BeginPlay()
 void UPlayerMeleeCombat::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-
-	// DEBUG
-	if (bIsAttacking && SwordCollision) {
-
-		FColor color;		// Green when enabled, red when disabled
-		if (SwordCollision->IsCollisionEnabled())
-			color = FColor::Green;
-		else
-			color = FColor::Red;
-
-		DrawDebugCapsule(
-			GetWorld(),
-			SwordCollision->GetComponentLocation(),			// Center
-			SwordCollision->GetScaledCapsuleHalfHeight(),	// Half Height
-			SwordCollision->GetScaledCapsuleRadius(),		// Radius
-			SwordCollision->GetComponentQuat(),				// Rotation
-			color,											// Color
-			false,											// Persistent lines
-			0.1f,											// Duration
-			2.0f											// Line thickness
-		);
-	}
-
 }
 
 
@@ -92,7 +69,7 @@ void UPlayerMeleeCombat::OnAttackInput() {
 
 	if (!PlayerCharacter) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat.OnAttackInput()"));
 		return;
 	}
 
@@ -118,7 +95,7 @@ void UPlayerMeleeCombat::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 
 	if (!PlayerCharacter) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat.OnAttackMontageEnded"));
 		return;
 	}
 
@@ -159,10 +136,9 @@ void UPlayerMeleeCombat::DisableAttackCollision() {
 void UPlayerMeleeCombat::OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) 
 {
+	// *** Damage Enemy
+	if (PlayerCharacter && OtherActor && Cast<AEnemyCharacter>(OtherActor)) {
 
-	if (OtherActor && OtherActor != PlayerCharacter) {
-
-		// *** Damage Enemy
 		UGameplayStatics::ApplyDamage(
 			OtherActor,									// Actor to damage
 			SwordDamage,								// Damage amount
@@ -171,4 +147,16 @@ void UPlayerMeleeCombat::OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComp
 			UDamageType::StaticClass()					// Damage type class
 		);
 	}
+}
+
+
+// Subscribed to Owner Actor's OnTakeAnyDamage event. 
+// Player cannot die so it just starts take damage montage and doesn't track health.
+void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player took damage"));
+
+	// TODO - play take damage montage
 }
