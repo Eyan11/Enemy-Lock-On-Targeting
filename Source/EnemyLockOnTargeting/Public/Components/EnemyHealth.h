@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description:
+* Description: Manages enemy take damage and death
 */
 
 #pragma once
@@ -32,14 +32,26 @@ public:
 
 private:
 
-	UPROPERTY()
-	float Health = 100.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	class UAnimMontage* HurtMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	class UAnimMontage* DeathMontage;
 
 	UPROPERTY()
 	class AEnemyCharacter* EnemyCharacter = nullptr;
 
+	UPROPERTY()
+	class UEnemyAnimInstance* EnemyAnimInstance;
+
+	UPROPERTY()
+	float Health = 100.0f;
+
 	UFUNCTION()
 	void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 		AController* InstigatedBy, AActor* DamageCauser);
+
+	UFUNCTION()
+	void OnMontageEnd(UAnimMontage* Montage, bool bInterrupted);
 
 };

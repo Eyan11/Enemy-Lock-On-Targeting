@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description:
+* Description: Oversees the entire enemy class, manages movement and attack
 */
 
 #include "Characters/EnemyCharacter.h"
@@ -21,7 +21,7 @@ AEnemyCharacter::AEnemyCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 
-	HealthComponent = CreateDefaultSubobject<UEnemyHealth>(TEXT("Health Component"));
+	HealthComponent = CreateDefaultSubobject<UEnemyHealth>(TEXT("Health Component MAIN"));
 
 	AIControllerClass = AEnemyAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
@@ -180,4 +180,17 @@ void AEnemyCharacter::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted)
 
 	if (Montage == AttackMontage)
 		EnemyAIController->OnFinishAttack();
+}
+
+
+void AEnemyCharacter::StopMovementOnDeath() {
+	GetCharacterMovement()->DisableMovement();
+
+	if (!EnemyAIController && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAIController is null in EnemyCharacter"));
+		return;
+	}
+
+	EnemyAIController->StopMovement();
+	DetachFromControllerPendingDestroy();
 }

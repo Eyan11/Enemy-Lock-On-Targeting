@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description:
+* Description: Manages enemy AI movement target and perception
 */
 
 #include "Controllers/EnemyAIController.h"

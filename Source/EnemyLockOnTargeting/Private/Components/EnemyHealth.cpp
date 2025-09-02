@@ -1,11 +1,12 @@
 /*
 * Author: Eyan Martucci
-* Description:
+* Description: Manages enemy take damage and death
 */
 
 #include "Components/EnemyHealth.h"
 
-#include "Characters/EnemyCharacter.h"	// Enemy Character
+#include "Characters/EnemyCharacter.h"		// Enemy Character
+#include "Animation/EnemyAnimInstance.h"	// Enemy Anim Instance
 
 // Sets default values for this component's properties
 UEnemyHealth::UEnemyHealth()
@@ -23,22 +24,28 @@ void UEnemyHealth::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!GetOwner()) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetOwner() is null in EnemyHealth"));
+	if (!GetOwner() && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetOwner() is null in EnemyHealth"));
 		return;
 	}
 
 	// *** Get Enemy Character Reference
 	EnemyCharacter = Cast<AEnemyCharacter>(GetOwner());
-	if (!EnemyCharacter) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharacter is null in EnemyHealth"));
+	if (!EnemyCharacter && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharacter is null in EnemyHealth"));
 		return;
 	}
 
-	// *** Subscribe Function to OnTakeAnyDamage Event
+	// *** Get Enemy Anim Instance
+	EnemyAnimInstance = Cast<UEnemyAnimInstance>(EnemyCharacter->GetMesh()->GetAnimInstance());
+	if (!EnemyAnimInstance && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAnimInstance is null in EnemyHealth"));
+		return;
+	}
+
+	// *** Subscribe Functions to Events
 	EnemyCharacter->OnTakeAnyDamage.AddDynamic(this, &UEnemyHealth::OnTakeDamage);
+	EnemyAnimInstance->OnMontageEnded.AddDynamic(this, &UEnemyHealth::OnMontageEnd);
 }
 
 
@@ -46,8 +53,6 @@ void UEnemyHealth::BeginPlay()
 void UEnemyHealth::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 
@@ -58,24 +63,41 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 	if(Health <= 0 || Damage <= 0)
 		return;
 
-	// *** Enemy Still Alive
-	if (Health > Damage)
-		Health -= Damage;
+	if ((!EnemyAnimInstance || !EnemyCharacter) && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAnimInstance or EnemyCharacter is null in EnemyHealth"));
+		return;
+	}
 
-	// *** Enemy Eliminated
+	// *** Enemy Hurt
+	if (Health > Damage) {
+		Health -= Damage;
+		EnemyAnimInstance->Montage_Play(HurtMontage);
+	}
+
+	// *** Enemy Death
 	else {
 		Health = 0;
-
-		if(EnemyCharacter)
-			EnemyCharacter->Destroy();
-		else {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharacter is null in EnemyHealth"));
-		}
+		EnemyCharacter->StopMovementOnDeath();
+		EnemyAnimInstance->Montage_Play(DeathMontage);
 	}
 
 	// DEBUG - print current health
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, 
 			FString::Printf(TEXT("Enemy Took Damage. Health = %f"), Health));
+}
+
+
+
+void UEnemyHealth::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted) {
+
+	if (Montage == HurtMontage) {
+
+	}
+	else if (Montage == DeathMontage) {
+		if (EnemyCharacter)
+			EnemyCharacter->Destroy();
+		else if(GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Can't Destroy Enemy, EnemyCharacter is null in EnemyHealth"));
+	}
 }

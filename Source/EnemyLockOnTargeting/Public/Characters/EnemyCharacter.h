@@ -1,6 +1,6 @@
 /*
 * Author: Eyan Martucci
-* Description:
+* Description: Oversees the entire enemy class, manages movement and attack
 */
 
 #pragma once
@@ -57,6 +57,7 @@ public:
 	bool GetIsInCombat() { return CurState != EEnemyMoveState::Roaming; }
 	void EnableAttackCollision();
 	void DisableAttackCollision();
+	void StopMovementOnDeath();
 
 
 private:

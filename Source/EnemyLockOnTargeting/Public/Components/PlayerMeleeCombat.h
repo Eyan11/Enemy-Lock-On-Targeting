@@ -1,4 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/*
+* Author: Eyan Martucci
+* Description: Manages player attack and take damage
+*/
 
 #pragma once
 
@@ -38,10 +41,10 @@ public:
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a normal attack
-	class UAnimMontage* NormalAttackMontage;
+	class UAnimMontage* AttackMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a jump or double jump attack
-	class UAnimMontage* JumpAttackMontage;
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when taking damage
+	class UAnimMontage* HurtMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Attack")	// The animation montage played when doing a normal attack
 	float SwordDamage = 20.0f;
@@ -58,8 +61,11 @@ private:
 	UPROPERTY()
 	bool bIsAttacking = false;
 
+	UPROPERTY()
+	bool bCanAttack = true;
+
 	UFUNCTION()
-	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);	// Cleans up variables when normal attack finished (needs to be UFUNCTION)
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);	// Cleans up variables and state when montage finishes
 
 	UFUNCTION()
 	void OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

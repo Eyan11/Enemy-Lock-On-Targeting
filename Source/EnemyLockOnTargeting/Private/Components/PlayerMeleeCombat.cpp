@@ -1,5 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+/*
+* Author: Eyan Martucci
+* Description: Manages player attack and take damage
+*/
 
 #include "Components/PlayerMeleeCombat.h"
 
@@ -25,7 +27,7 @@ void UPlayerMeleeCombat::BeginPlay()
 	Super::BeginPlay();
 
 	// *** Check Montage Reference
-	if (!NormalAttackMontage || !JumpAttackMontage) {
+	if (!AttackMontage || !HurtMontage) {
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Missing reference to a montage in PlayerMeleeCombat"));
 	}
@@ -41,6 +43,7 @@ void UPlayerMeleeCombat::BeginPlay()
 	PlayerAnimInstance = Cast<UPlayerAnimInstance>(PlayerCharacter->GetMesh()->GetAnimInstance());
 	if (!PlayerAnimInstance) {
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("PlayerAnimInstance reference is null in PlayerMeleeCombat"));
+		return;
 	}
 
 	// *** Get Sword Collision Reference
@@ -53,6 +56,7 @@ void UPlayerMeleeCombat::BeginPlay()
 
 	// *** Bind Sword Collision Overlap and Take Damage
 	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &UPlayerMeleeCombat::OnSwordBeginOverlap);
+	PlayerAnimInstance->OnMontageEnded.AddDynamic(this, &UPlayerMeleeCombat::OnMontageEnded);
 	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UPlayerMeleeCombat::OnTakeDamage);
 }
 
@@ -79,19 +83,18 @@ void UPlayerMeleeCombat::OnAttackInput() {
 		return;
 	}
 
-	if (bIsAttacking) return;	// Ignore if already attacking
+	if (bIsAttacking || !bCanAttack) return;	// Ignore if already attacking or not allowed to
 
 
 	// *** Play Normal Attack Montage
-	PlayerAnimInstance->Montage_Play(NormalAttackMontage);
+	PlayerAnimInstance->Montage_Play(AttackMontage);
 	bIsAttacking = true;
 	PlayerCharacter->StopMoveInput();
-	PlayerAnimInstance->OnMontageEnded.AddDynamic(this, &UPlayerMeleeCombat::OnAttackMontageEnded);
 }
 
 
 // Cleans up attack montage variables
-void UPlayerMeleeCombat::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
+void UPlayerMeleeCombat::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
 
 	if (!PlayerCharacter) {
 		if (GEngine)
@@ -99,8 +102,16 @@ void UPlayerMeleeCombat::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 		return;
 	}
 
-	bIsAttacking = false;
-	PlayerCharacter->ResumeMoveInput();
+	if (Montage == AttackMontage) {			// Cleanup attack montage
+		bIsAttacking = false;
+		if (bInterrupted)
+			DisableAttackCollision();
+	}
+	else if (Montage == HurtMontage)		// Cleanup hurt montage
+		bCanAttack = true;
+
+	if(!bInterrupted)						// Resume movement if no montage is playing after this one
+		PlayerCharacter->ResumeMoveInput();
 }
 
 
@@ -155,8 +166,14 @@ void UPlayerMeleeCombat::OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComp
 void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	AController* InstigatedBy, AActor* DamageCauser)
 {
+	if (Damage <= 0)
+		return;
+
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player took damage"));
 
-	// TODO - play take damage montage
+	// *** Start Hurt Montage
+	PlayerAnimInstance->Montage_Play(HurtMontage);
+	bCanAttack = false;
+	PlayerCharacter->StopMoveInput();
 }
