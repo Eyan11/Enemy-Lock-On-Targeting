@@ -30,6 +30,11 @@ public:
 
 //*********************************************************
 
+public:
+
+	float GetHealth() const { return Health; }
+	float GetMaxHealth() const { return MaxHealth; }
+
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
@@ -46,6 +51,9 @@ private:
 
 	UPROPERTY()
 	float Health = 100.0f;
+
+	UPROPERTY()
+	float MaxHealth = 100.0f;
 
 	UFUNCTION()
 	void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,

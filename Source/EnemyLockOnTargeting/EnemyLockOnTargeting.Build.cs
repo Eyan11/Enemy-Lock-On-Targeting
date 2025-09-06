@@ -8,11 +8,12 @@ public class EnemyLockOnTargeting : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        // Added "GameplayTags", "Paper2D", "AIModule", "NavigationSystem"
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", 
-			"GameplayTags", "Paper2D", "AIModule", "NavigationSystem" });
+		// Added "GameplayTags", "Paper2D", "AIModule", "NavigationSystem", "UMG", "Slate", "SlateCore"
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
+			"GameplayTags", "Paper2D", "AIModule", "NavigationSystem", "UMG", "Slate", "SlateCore" });
+	
 
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

@@ -13,6 +13,7 @@
 #include "DrawDebugHelpers.h"							// Draw Debug Capsule
 #include "Kismet/GameplayStatics.h"						// Apply Damage
 #include "Characters/PlayerCharacter.h"					// Player Character
+#include "Components/WidgetComponent.h"					// Widget Component
 
 // Sets default values
 AEnemyCharacter::AEnemyCharacter()
@@ -20,11 +21,12 @@ AEnemyCharacter::AEnemyCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Components
+	HealthComponent = CreateDefaultSubobject<UEnemyHealth>(TEXT("Health Component"));
 
-	HealthComponent = CreateDefaultSubobject<UEnemyHealth>(TEXT("Health Component MAIN"));
-
-	AIControllerClass = AEnemyAIController::StaticClass();
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthValue"));
+	WidgetComp->SetupAttachment(RootComponent);
+	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 
 	// Sword mesh and collision
 	SwordStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sword Static Mesh"));
@@ -34,6 +36,11 @@ AEnemyCharacter::AEnemyCharacter()
 	SwordCollision->SetupAttachment(SwordStaticMesh);
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	// AI Controller
+	AIControllerClass = AEnemyAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// Class Defaults
 	GetCharacterMovement()->MaxWalkSpeed = RoamingSpeed;
 	GetCharacterMovement()->bOrientRotationToMovement = true;	// Let movement decide rotation
 	bUseControllerRotationYaw = false;							// Don't use controller rotation
@@ -53,11 +60,8 @@ void AEnemyCharacter::BeginPlay()
 	EnemyAnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!EnemyAnimInstance && GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("EnemyAnimInstance is null in EnemyCharacter"));
+		return;
 	}
-
-	// *** Bind Sword Collision Overlap Method
-	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemyCharacter::OnSwordBeginOverlap);
-	EnemyAnimInstance->OnMontageEnded.AddDynamic(this, &AEnemyCharacter::OnMontageEnd);
 
 	// *** Get Enemy AI Controller Reference
 	EnemyAIController = Cast<AEnemyAIController>(GetController());
@@ -65,6 +69,32 @@ void AEnemyCharacter::BeginPlay()
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAIController Cast failed in EnemyCharacter"));
 		return;
 	}
+
+	// Check Sword Collision, healthbar widget, and health component
+	if ((!SwordCollision || !HealthComponent) && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SwordCollision or HealthComponent is null in EnemyCharacter"));
+		return;
+	}
+
+	// Check healthbar widget class and component
+	if ((!HealthbarWidgetClass || !WidgetComp) && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HealthbarWidgetClass or WidgetComp is null in EnemyCharacter"));
+		return;
+	}
+
+	// Specify that the widget is a UEnemyHealthbarWidget
+	WidgetComp->SetWidgetClass(HealthbarWidgetClass);
+	// Store reference to UEnemyHealthBarWidget to reference its properties later
+	HealthbarWidget = Cast<UEnemyHealthbarWidget>(WidgetComp->GetUserWidgetObject());
+
+	if (!HealthbarWidget && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HealthbarWidget is null in EnemyCharacter"));
+		return;
+	}
+
+	// *** Bind Sword Collision Overlap Method
+	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemyCharacter::OnSwordBeginOverlap);
+	EnemyAnimInstance->OnMontageEnded.AddDynamic(this, &AEnemyCharacter::OnMontageEnd);
 }
 
 // Called every frame
@@ -170,9 +200,6 @@ void AEnemyCharacter::DisableAttackCollision() {
 // Starts transition to the retreat state
 void AEnemyCharacter::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("Montage ENDED"));
-
 	if (!AttackMontage && GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AttackMontage is null in EnemyCharacter->OnMontageEnd()"));
 		return;
@@ -184,6 +211,7 @@ void AEnemyCharacter::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted)
 
 
 void AEnemyCharacter::StopMovementOnDeath() {
+
 	GetCharacterMovement()->DisableMovement();
 
 	if (!EnemyAIController && GEngine) {

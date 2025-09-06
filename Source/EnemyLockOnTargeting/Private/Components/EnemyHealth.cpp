@@ -8,14 +8,13 @@
 #include "Characters/EnemyCharacter.h"		// Enemy Character
 #include "Animation/EnemyAnimInstance.h"	// Enemy Anim Instance
 
+
 // Sets default values for this component's properties
 UEnemyHealth::UEnemyHealth()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -40,6 +39,11 @@ void UEnemyHealth::BeginPlay()
 	EnemyAnimInstance = Cast<UEnemyAnimInstance>(EnemyCharacter->GetMesh()->GetAnimInstance());
 	if (!EnemyAnimInstance && GEngine) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAnimInstance is null in EnemyHealth"));
+		return;
+	}
+
+	if ((!HurtMontage || !DeathMontage) && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HurtMontage or DeathMontage is null in EnemyHealth"));
 		return;
 	}
 
@@ -72,6 +76,16 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 	if (Health > Damage) {
 		Health -= Damage;
 		EnemyAnimInstance->Montage_Play(HurtMontage);
+
+		// *** Update Healthbar
+		if (!EnemyCharacter->GetHealthbarWidget() && GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetHealthbarWidget is null in EnemyHealth"));
+			return;
+		}
+		else {
+			EnemyCharacter->GetHealthbarWidget()->ShowHealthbar();
+			EnemyCharacter->GetHealthbarWidget()->SetBarValuePercent(Health / MaxHealth);
+		}
 	}
 
 	// *** Enemy Death
@@ -79,6 +93,14 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 		Health = 0;
 		EnemyCharacter->StopMovementOnDeath();
 		EnemyAnimInstance->Montage_Play(DeathMontage);
+
+		// *** Hide Healthbar
+		if (!EnemyCharacter->GetHealthbarWidget() && GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetHealthbarWidget is null in EnemyHealth"));
+			return;
+		}
+		else
+			EnemyCharacter->GetHealthbarWidget()->HideHealthbar();
 	}
 
 	// DEBUG - print current health
@@ -88,13 +110,10 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 }
 
 
-
+// Destroy character when death montage is finished
 void UEnemyHealth::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted) {
 
-	if (Montage == HurtMontage) {
-
-	}
-	else if (Montage == DeathMontage) {
+	if (Montage == DeathMontage) {
 		if (EnemyCharacter)
 			EnemyCharacter->Destroy();
 		else if(GEngine)

@@ -8,6 +8,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GameplayTagAssetInterface.h"	// To implement IGameplayTagAssetInterface
+#include "UI/EnemyHealthbarWidget.h"	// Enemy Healthbar
 #include "EnemyCharacter.generated.h"
 
 // Enemy State Enumeration (Simplified version from EnemyAIController to set movement speed)
@@ -54,10 +55,11 @@ public:
 
 	void StartAttacking();
 	void SwitchMoveState(EEnemyMoveState newState);
-	bool GetIsInCombat() { return CurState != EEnemyMoveState::Roaming; }
 	void EnableAttackCollision();
 	void DisableAttackCollision();
 	void StopMovementOnDeath();
+	bool GetIsInCombat() const { return CurState != EEnemyMoveState::Roaming; }
+	UEnemyHealthbarWidget* GetHealthbarWidget() { return HealthbarWidget; }
 
 
 private:
@@ -70,6 +72,15 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	class UCapsuleComponent* SwordCollision = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	class UWidgetComponent* WidgetComp = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	TSubclassOf<UUserWidget> HealthbarWidgetClass;
+
+	UPROPERTY()
+	class UEnemyHealthbarWidget* HealthbarWidget = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")	// Auto set in begin play. Controls enemy movement and perception
 	class AEnemyAIController* EnemyAIController = nullptr;

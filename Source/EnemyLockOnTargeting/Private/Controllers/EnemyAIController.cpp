@@ -79,7 +79,7 @@ void AEnemyAIController::Tick(float DeltaTime) {
 }
 
 
-
+// Sets up the new enemy AI state
 void AEnemyAIController::SwitchEnemyState(EEnemyState NewState) {
 
 	CurState = NewState;
