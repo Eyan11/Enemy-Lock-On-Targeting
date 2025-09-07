@@ -102,15 +102,16 @@ void UPlayerMeleeCombat::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted
 		return;
 	}
 
-	if (Montage == AttackMontage) {			// Cleanup attack montage
+	if (Montage == AttackMontage)		// Cleanup attack montage
 		bIsAttacking = false;
-		if (bInterrupted)
-			DisableAttackCollision();
-	}
-	else if (Montage == HurtMontage)		// Cleanup hurt montage
+	else if (Montage == HurtMontage)	// Cleanup hurt montage
+		bCanAttack = true;
+	else if (Montage == BlockMontage)
 		bCanAttack = true;
 
-	if(!bInterrupted)						// Resume movement if no montage is playing after this one
+	if (bInterrupted)
+		DisableAttackCollision();
+	else								// Resume movement if no montage is playing after this one
 		PlayerCharacter->ResumeMoveInput();
 }
 
@@ -172,7 +173,7 @@ void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const 
 	float dotProd = 1.0f;	// Hurt player by default
 
 	// *** Check if Shield Blocked Attack
-	if (DamageCauser && PlayerCharacter->IsTargetingInputHeld()) {
+	if (DamageCauser && PlayerCharacter->IsTargetingInputHeld() && !bIsAttacking) {
 
 		dotProd = FVector::DotProduct(PlayerCharacter->GetActorForwardVector(),
 			DamageCauser->GetActorForwardVector());

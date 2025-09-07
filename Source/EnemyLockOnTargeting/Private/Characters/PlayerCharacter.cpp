@@ -95,6 +95,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if(bIsMoveInputAllowed)
 		UpdatePlayerRotation();
+
+	if (JumpTimer > 0)
+		JumpTimer -= DeltaTime;
 }
 
 // Locks player rotation every frame depending on lock on targeting mode
@@ -143,6 +146,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(SwitchToLeftTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToLeftTarget);
 	enhancedInput->BindAction(SwitchToRightTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToRightTarget);
 	enhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::Attack);
+}
+
+void APlayerCharacter::Landed(const FHitResult& Hit)
+{
+	JumpTimer = JumpDelay;
 }
 
 
@@ -236,7 +244,40 @@ void APlayerCharacter::CalculateMoveStateChanges(FVector playerForward) {
 
 // Applies jump force when player presses jump input
 void APlayerCharacter::StartJump() {
-	Jump();
+
+	if (GetCharacterMovement()->IsFalling() || JumpTimer > 0)
+		return;
+
+	// *** Directional Jump While Targeting
+	if (bIsHoldingTargetingInput) {
+		FVector curVel = GetVelocity().GetSafeNormal2D();
+		GetCharacterMovement()->StopMovementImmediately();
+		Jump();
+
+		if (curVel.IsNearlyZero())				// If not moving, only jump upwards
+			return;
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, FString::Printf(TEXT("curVel: %s"), *curVel.ToString()));
+
+		// Get angles between velocity and player forward/right vectors
+		float forwardDotProd = FVector::DotProduct(curVel, GetActorForwardVector().GetSafeNormal2D());
+		float rightDotProd = FVector::DotProduct(curVel, GetActorRightVector().GetSafeNormal2D());
+
+		// *** Apply Directional Jump
+		if (forwardDotProd > 0.7)			// Jump forward
+			GetCharacterMovement()->AddImpulse(GetActorForwardVector() * JumpDirectionalImpulse);
+		else if (forwardDotProd < -0.7)		// Jump backwards
+			GetCharacterMovement()->AddImpulse(-GetActorForwardVector() * JumpDirectionalImpulse);
+		else if (rightDotProd > 0)			// Jump right
+			GetCharacterMovement()->AddImpulse(GetActorRightVector() * JumpDirectionalImpulse);
+		else								// Jump left
+			GetCharacterMovement()->AddImpulse(-GetActorRightVector() * JumpDirectionalImpulse);
+	}
+	// *** Jump in Move Direction
+	else {
+		Jump();
+	}
 }
 
 // Rotates player camera left, right, up, and down 

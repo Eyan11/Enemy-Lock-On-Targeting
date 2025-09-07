@@ -113,10 +113,9 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 // Destroy character when death montage is finished
 void UEnemyHealth::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted) {
 
-	if (Montage == DeathMontage) {
-		if (EnemyCharacter)
-			EnemyCharacter->Destroy();
-		else if(GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Can't Destroy Enemy, EnemyCharacter is null in EnemyHealth"));
-	}
+	if (Montage == DeathMontage)
+		GetOwner()->Destroy();
+	
+	if (bInterrupted && EnemyCharacter)
+		EnemyCharacter->DisableAttackCollision();
 }

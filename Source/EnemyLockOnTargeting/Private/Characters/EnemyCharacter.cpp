@@ -200,11 +200,6 @@ void AEnemyCharacter::DisableAttackCollision() {
 // Starts transition to the retreat state
 void AEnemyCharacter::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!AttackMontage && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AttackMontage is null in EnemyCharacter->OnMontageEnd()"));
-		return;
-	}
-
 	if (Montage == AttackMontage)
 		EnemyAIController->OnFinishAttack();
 }

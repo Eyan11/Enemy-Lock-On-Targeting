@@ -32,6 +32,7 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void Landed(const FHitResult& Hit) override;
 
 
 //*********************************************************
@@ -119,11 +120,18 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")		// The percent of the normal speed that the player moves at when targeting and walking forward
 	float TargetingForwardWalkSpeedMultiplier = 0.8f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
+	float JumpDirectionalImpulse = 40000.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
+	float JumpDelay = 0.1f;
+
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* StimulusSource;	// Player is a stimulus source, meaning it can be detected by enemy AI perception
 	
 	FVector InputDir = FVector::ForwardVector;					// The last input direction
-	float StartMovingCounter = 0.0f;								
+	float StartMovingCounter = 0.0f;	
+	float JumpTimer = 0.0f;
 	bool bIsDelayingMovement = false;
 	bool bIsSwitchingDir = false;
 	bool bIsMoveInputAllowed = true;
