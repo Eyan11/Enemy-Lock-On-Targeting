@@ -122,7 +122,7 @@ private:
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* StimulusSource;	// Player is a stimulus source, meaning it can be detected by enemy AI perception
 	
-	FVector InputDir = FVector::ForwardVector;				// The last input direction
+	FVector InputDir = FVector::ForwardVector;					// The last input direction
 	float StartMovingCounter = 0.0f;								
 	bool bIsDelayingMovement = false;
 	bool bIsSwitchingDir = false;

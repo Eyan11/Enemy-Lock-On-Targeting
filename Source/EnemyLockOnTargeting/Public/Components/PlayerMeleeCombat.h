@@ -40,13 +40,16 @@ public:
 
 private:
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a normal attack
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	class UAnimMontage* AttackMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when taking damage
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	class UAnimMontage* HurtMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Attack")	// The animation montage played when doing a normal attack
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	class UAnimMontage* BlockMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")
 	float SwordDamage = 20.0f;
 
 	UPROPERTY()

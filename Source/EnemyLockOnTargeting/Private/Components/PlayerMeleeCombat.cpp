@@ -166,14 +166,37 @@ void UPlayerMeleeCombat::OnSwordBeginOverlap(UPrimitiveComponent* OverlappedComp
 void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	AController* InstigatedBy, AActor* DamageCauser)
 {
-	if (Damage <= 0)
+	if (!PlayerCharacter || Damage <= 0)
 		return;
 
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player took damage"));
+	float dotProd = 1.0f;	// Hurt player by default
 
-	// *** Start Hurt Montage
-	PlayerAnimInstance->Montage_Play(HurtMontage);
-	bCanAttack = false;
-	PlayerCharacter->StopMoveInput();
+	// *** Check if Shield Blocked Attack
+	if (DamageCauser && PlayerCharacter->IsTargetingInputHeld()) {
+
+		dotProd = FVector::DotProduct(PlayerCharacter->GetActorForwardVector(),
+			DamageCauser->GetActorForwardVector());
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, FString::Printf(TEXT("Dot Product Result: %f"), dotProd));
+	}
+
+	// *** Block Attack
+	if (dotProd < 0) {	// If attacker is facing player
+		PlayerAnimInstance->Montage_Play(BlockMontage);
+		bCanAttack = false;
+		PlayerCharacter->StopMoveInput();
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player blocked attack"));
+	}
+	// *** Hurt Player
+	else {				// If not shielding or attacker is facing same direction as player (behind)
+		PlayerAnimInstance->Montage_Play(HurtMontage);
+		bCanAttack = false;
+		PlayerCharacter->StopMoveInput();
+
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player took damage"));
+	}
 }
