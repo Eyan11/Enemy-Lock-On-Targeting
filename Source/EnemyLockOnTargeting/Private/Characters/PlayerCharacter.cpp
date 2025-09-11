@@ -15,6 +15,7 @@
 #include "Components/BoxComponent.h"					// Box Collision
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
+#include "Characters/EnemyCharacter.h"					// Enemy Character (to spawn)
 
 
 // Sets default values
@@ -64,7 +65,7 @@ APlayerCharacter::APlayerCharacter()
 	StimulusSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Stimulus"));
 	if (!StimulusSource) {
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("StimulusSource is null in EnemyAIController"));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("StimulusSource is null in PlayerController"));
 		return;
 	}
 	StimulusSource->RegisterForSense(TSubclassOf<UAISense_Sight>());
@@ -146,6 +147,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(SwitchToLeftTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToLeftTarget);
 	enhancedInput->BindAction(SwitchToRightTargetAction, ETriggerEvent::Started, this, &APlayerCharacter::SwitchToRightTarget);
 	enhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::Attack);
+	enhancedInput->BindAction(SpawnEnemyAction, ETriggerEvent::Started, this, &APlayerCharacter::SpawnEnemy);
 }
 
 void APlayerCharacter::Landed(const FHitResult& Hit)
@@ -245,7 +247,7 @@ void APlayerCharacter::CalculateMoveStateChanges(FVector playerForward) {
 // Applies jump force when player presses jump input
 void APlayerCharacter::StartJump() {
 
-	if (GetCharacterMovement()->IsFalling() || JumpTimer > 0)
+	if (GetCharacterMovement()->IsFalling() || JumpTimer > 0 || !bIsMoveInputAllowed)
 		return;
 
 	// *** Directional Jump While Targeting
@@ -321,9 +323,10 @@ void APlayerCharacter::SwitchToRightTarget() {
 	LockOnTargetingComp->OnSwitchDirectionalTargetInput(true);
 }
 
-// Starts attack animation on hitbox detection
+// Starts attack montage if player is grounded
 void APlayerCharacter::Attack() {
-	MeleeCombatComp->OnAttackInput();
+	if(!GetCharacterMovement()->IsFalling())
+		MeleeCombatComp->OnAttackInput();
 }
 
 // Stops player from moving and rotating
@@ -335,4 +338,23 @@ void APlayerCharacter::StopMoveInput() {
 // Allows player to move and rotate
 void APlayerCharacter::ResumeMoveInput() {
 	bIsMoveInputAllowed = true;
+}
+
+// Spawns an enemy in the direction of player camera
+void APlayerCharacter::SpawnEnemy() {
+
+	if (!EnemyToSpawn && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyToSpawn is null in PlayerCharacter->SpawnEnemy"));
+		return;
+	}
+
+	// *** Spawn Enemy
+	FVector spawnLoc = GetActorLocation() +		// Spawn in camera forward direction in the air
+		(Camera->GetForwardVector().GetSafeNormal2D() * EnemySpawnDistance) + (GetActorUpVector() * 100.0f);
+	FActorSpawnParameters SpawnParams;
+	AActor* newEnemy = GetWorld()->SpawnActor<AActor>(EnemyToSpawn,	spawnLoc, GetActorRotation(), SpawnParams);
+
+	// Check if Spawn Worked
+	if (!newEnemy && GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Enemy failed to spawn in PlayerCharacter->SpawnEnemy"));
 }

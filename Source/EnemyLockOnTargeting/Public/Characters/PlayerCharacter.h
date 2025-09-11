@@ -10,6 +10,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Characters/EnemyCharacter.h"					// Enemy Character (to spawn)
 #include "PlayerCharacter.generated.h"
 
 
@@ -99,6 +100,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* AttackAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* SpawnEnemyAction;
+
 	bool bIsHoldingTargetingInput = false;
 
 	// *** Settings
@@ -126,6 +130,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
 	float JumpDelay = 0.1f;
 
+	// *** Enemy Spawning
+	UPROPERTY(EditDefaultsOnly, Category = "EnemySpawning")
+	TSubclassOf<AEnemyCharacter> EnemyToSpawn;
+
+	UPROPERTY(EditDefaultsOnly, Category = "EnemySpawning")
+	float EnemySpawnDistance = 1500.0f;
+
+
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* StimulusSource;	// Player is a stimulus source, meaning it can be detected by enemy AI perception
 	
@@ -147,6 +159,7 @@ private:
 	void SwitchToLeftTarget();
 	void SwitchToRightTarget();
 	void Attack();
+	void SpawnEnemy();
 
 	// Helper
 	void CalculateMoveStateChanges(FVector playerForward);
