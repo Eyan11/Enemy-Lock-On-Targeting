@@ -25,6 +25,7 @@ void ATargetingArrow::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	DynamicArrowMat = PaperSpriteComp->CreateDynamicMaterialInstance(0);
 	HideArrow();
 }
 
@@ -35,7 +36,7 @@ void ATargetingArrow::Tick(float DeltaTime)
 
 	// *** Update Arrow Location and Rotation
 	if (PaperSpriteComp->IsVisible())
-		UpdateArrow();
+		UpdateArrow(DeltaTime);
 }
 
 
@@ -43,11 +44,30 @@ void ATargetingArrow::Tick(float DeltaTime)
 void ATargetingArrow::SetTarget(AActor* NewTarget) {
 
 	TargetActor = NewTarget;
-	UpdateArrow();
+	UpdateArrow(0.0f);
 	PaperSpriteComp->SetVisibility(true);
+}
 
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Showing Arrow"));
+void ATargetingArrow::StartTargetingMode() {
+
+	bIsTargetingMode = true;
+	SetActorScale3D(FVector::OneVector);
+	CurTime = 0.0f;				// Start at min height
+	CurVerticalOffset = 0.0f;
+	UpdateArrow(0.0f);
+	DynamicArrowMat->SetVectorParameterValue("SpriteColor", TargetingArrowRedColor);
+	PaperSpriteComp->SetVisibility(true);
+}
+
+void ATargetingArrow::StartNonTargetingMode() {
+
+	bIsTargetingMode = false;
+	SetActorScale3D(FVector::OneVector * 0.6);
+	CurTime = (PI / 2.0f) / ArrowAlphaSpeed;	// Start with alpha = 1.0
+	CurVerticalOffset = 0.0f;
+	UpdateArrow(0.0f);
+	DynamicArrowMat->SetVectorParameterValue("SpriteColor", NonTargetingArrowWhiteColor);
+	PaperSpriteComp->SetVisibility(true);
 }
 
 // Hides arrow and reset variables
@@ -55,13 +75,10 @@ void ATargetingArrow::HideArrow() {
 
 	PaperSpriteComp->SetVisibility(false);
 	TargetActor = nullptr;
-
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Hiding Arrow"));
 }
 
 // Updates arrow location and rotation
-void ATargetingArrow::UpdateArrow() {
+void ATargetingArrow::UpdateArrow(float DeltaTime) {
 
 	// *** Check if Target is Destroyed
 	if (!TargetActor) {
@@ -69,13 +86,27 @@ void ATargetingArrow::UpdateArrow() {
 		return;
 	}
 
+	// *** Loop Vertical Offset in Targeting Mode
+	if (bIsTargetingMode) {
+		CurTime += DeltaTime;
+		CurVerticalOffset = VerticalBobCurve->GetFloatValue(CurTime * ArrowMoveSpeed) * TargetingVerticalMaxHeightOffset;
+		// Applied when setting location below
+	}
+	// *** Loop Alpha in Non-Targeting Mode
+	else {
+		CurTime += DeltaTime;
+		CurAlpha = (FMath::Sin(CurTime * ArrowAlphaSpeed) * 0.5f) + 0.5f;
+		FLinearColor arrowColor(1.0f, 1.0f, 1.0f, CurAlpha);
+		DynamicArrowMat->SetVectorParameterValue("SpriteColor", arrowColor);
+	}
+
+
 	// *** Set Location
 	FVector targetLoc = TargetActor->GetActorLocation();
-	targetLoc.Z += TargetActor->GetSimpleCollisionHalfHeight() + VerticalOffset;
+	targetLoc.Z += TargetActor->GetSimpleCollisionHalfHeight() + CurVerticalOffset + VerticalBaseHeight;
 	SetActorLocation(targetLoc);
 
 	// *** Set Rotation
-	
 	FVector targetDir = CamManager->GetCameraLocation() - GetActorLocation();
 	targetDir.Z = 0.0f;			// Prevent tilting up/down
 

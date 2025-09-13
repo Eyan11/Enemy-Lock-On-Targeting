@@ -36,7 +36,6 @@ void ULockOnTargeting::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
 	// *** Get References
 	PlayerActor = GetOwner();
 	ActorsToIgnore.Add(PlayerActor);	// Don't target self
@@ -46,36 +45,25 @@ void ULockOnTargeting::BeginPlay()
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
 	// DEBUG
-	if (PlayerActor && SpringArm && Camera && PlayerController && TargetingArrowClass) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Got all references in LockOnTargeting"));
+	if (PlayerActor && SpringArm && Camera && PlayerController && TargetingArrowClass && GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Got all references in LockOnTargeting"));
 	}
-	else {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference in LockOnTargeting"));
+	else if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference in LockOnTargeting"));
 	}
 
 
 	// *** Spawn Targeting Arrow
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-	TargetingArrow = GetWorld()->SpawnActor<ATargetingArrow>(
-		TargetingArrowClass,
-		FVector::ZeroVector,
-		FRotator::ZeroRotator,
-		SpawnParams
-	);
+	TargetingArrow = GetWorld()->SpawnActor<ATargetingArrow>(TargetingArrowClass, 
+		FVector::ZeroVector, FRotator::ZeroRotator,SpawnParams);
 
 	// DEBUG
-	if (TargetingArrow) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Spawned Targeting Arrow"));
-	}
-	else {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Did Not Spawn Targeting Arrow"));
-	}
+	if (TargetingArrow && GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Spawned Targeting Arrow"));
+	else if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Did Not Spawn Targeting Arrow"));
 }
 
 
@@ -106,6 +94,16 @@ void ULockOnTargeting::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 			PreviousTargetedActor = nullptr;
 		}
 	}
+
+	// *** Call UpdateNonTargeting on Interval
+	if (!bIsTargeting) {
+		UpdateNonTargetingTimer -= DeltaTime;
+
+		if (UpdateNonTargetingTimer <= 0) {
+			UpdateNonTargeting();
+			UpdateNonTargetingTimer = UpdateNonTargetingInterval;
+		}
+	}
 }
 
 
@@ -113,7 +111,7 @@ void ULockOnTargeting::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 void ULockOnTargeting::OnTargetingInputStart() {
 
 	// *** Get Nearest Actor With Targetable Tag
-	TargetedActor = GetNearestTarget();
+	TargetedActor = GetNearestTarget(true);
 
 	// *** Start Lock On Targeting
 	if (TargetedActor) {			// If there is a target to lock onto
@@ -129,6 +127,7 @@ void ULockOnTargeting::OnTargetingInputStart() {
 		bIsTargeting = true;
 		bIsCleaningUpTargeting = false;
 		TargetingArrow->SetTarget(TargetedActor);
+		TargetingArrow->StartTargetingMode();
 	}
 
 	// *** Start Camera Reset
@@ -144,6 +143,7 @@ void ULockOnTargeting::OnSwitchDirectionalTargetInput(bool bGetRight) {
 
 	TargetedActor = GetNextTargetInDirection(bGetRight);
 	TargetingArrow->SetTarget(TargetedActor);
+	TargetingArrow->StartTargetingMode();
 }
 
 
@@ -152,28 +152,9 @@ void ULockOnTargeting::UpdateTargeting() {
 	
 	// *** Check to Stop Targeting
 	if (!IsValid(TargetedActor) || SpringArm->TargetArmLength > MaxTargetingDistance) {
-		
-		// DEBUG
-		if (!IsValid(TargetedActor) && GEngine) {
-			GEngine->AddOnScreenDebugMessage(
-				-1, 5.0f, FColor::Yellow,
-				TEXT("Stopping Targeting, Targeted Actor is null"));
-		}
-		// DEBUG
-		else if (GEngine)
-		{
-			float distance = FVector::Distance(TargetedActor->GetActorLocation(), PlayerActor->GetActorLocation());
-			GEngine->AddOnScreenDebugMessage(
-				-1, 5.0f, FColor::Yellow, 
-				TEXT("Stopping Targeting, Distance between player and target = ") + 
-				FString::SanitizeFloat(distance));
-		}
-		
-		// Stop targeting actor and start resetting camera
 		OnTargetingInputEnd();
 		return;
 	}
-
 	
 	// *** Update Spring Arm Target Offset
 	FVector targetOffset = (TargetedActor->GetActorLocation() - PlayerActor->GetActorLocation()) / 2;
@@ -229,7 +210,22 @@ void ULockOnTargeting::UpdateTargetingCleanup() {
 		DefaultSpringArmLength, GetWorld()->GetDeltaSeconds(), SpringArmInterpSpeed);
 
 	SpringArm->TargetArmLength = interpolatedLength;
+}
 
+// Sets arrow sprite over the head of the nearest enemy in range
+void ULockOnTargeting::UpdateNonTargeting() {
+
+	AActor* nearestTarget = GetNearestTarget(false);
+
+	if (!nearestTarget) {
+		NonTargetingActor = nullptr;
+		TargetingArrow->HideArrow();
+	}
+	else if (NonTargetingActor != nearestTarget) {
+		NonTargetingActor = nearestTarget;
+		TargetingArrow->SetTarget(NonTargetingActor);
+		TargetingArrow->StartNonTargetingMode();
+	}
 }
 
 
@@ -240,6 +236,8 @@ void ULockOnTargeting::OnTargetingInputEnd() {
 	bIsCleaningUpTargeting = true;		// Smoothly update spring arm to default values
 	bCanSwitchTargets = true;
 	SwitchTargetsTimer = SwitchTargetsTimeFrame;
+	UpdateNonTargetingTimer = UpdateNonTargetingInterval;
+	NonTargetingActor = nullptr;
 
 	if (IsValid(TargetedActor))
 		PreviousTargetedActor = TargetedActor;
@@ -250,7 +248,9 @@ void ULockOnTargeting::OnTargetingInputEnd() {
 
 	TargetingOffsetRotation = FRotator::ZeroRotator;
 	TargetingOffsetRotation.Yaw = DefaultTargetingYawOffset;
-	TargetingArrow->HideArrow();
+
+	// Handle Arrow
+	UpdateNonTargeting();
 }
 
 
@@ -294,14 +294,16 @@ TArray<AActor*> ULockOnTargeting::GetAllTargetsInRange() {
 
 // Returns the closest actor with targetable gameplay tag in sphere overlap. 
 //	If switching targets by distance instead of direction, then it gets the next closest actor.
-AActor* ULockOnTargeting::GetNearestTarget() {
+AActor* ULockOnTargeting::GetNearestTarget(bool bConsiderPreviousTarget) {
 
 	// *** Get All Actors With Targetable Tag in Sphere Overlap
 	TArray<AActor*> targetableActors = GetAllTargetsInRange();
 	bool bRemovedPreviousTarget = false;
 
 	// *** Check if Switching Targets
-	if (bCanSwitchTargets && PreviousTargetedActor && targetableActors.Contains(PreviousTargetedActor)) {
+	if (bConsiderPreviousTarget && bCanSwitchTargets &&
+		PreviousTargetedActor && targetableActors.Contains(PreviousTargetedActor)) 
+	{
 		targetableActors.Remove(PreviousTargetedActor);
 		bRemovedPreviousTarget = true;
 	}

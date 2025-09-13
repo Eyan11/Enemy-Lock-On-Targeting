@@ -29,21 +29,52 @@ public:
 
 public:
 
-	void SetTarget(AActor* NewTarget);					// Initializes the targeting arrow system
-	void HideArrow();									// Cleans up the targeting arrow system
+	void SetTarget(AActor* NewTarget);
+	void StartTargetingMode();
+	void StartNonTargetingMode();
+	void HideArrow();
 
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Components")	// The component that displays the sprite
-		class UPaperSpriteComponent* PaperSpriteComp;
+	class UPaperSpriteComponent* PaperSpriteComp;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Sprite")	// The height above the target actor that the arrow hovers
-		float VerticalOffset = 100.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "References")
+	UCurveFloat* VerticalBobCurve;
 
-	AActor* TargetActor;								// The actor that the arrow hovers above
+	UPROPERTY(EditDefaultsOnly, Category = "Arrow")
+	FLinearColor TargetingArrowRedColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Arrow")
+	FLinearColor NonTargetingArrowWhiteColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sprite")
+	float VerticalBaseHeight = 70.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sprite")
+	float TargetingVerticalMaxHeightOffset = 100.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Arrow")
+	float ArrowAlphaSpeed = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Arrow")
+	float ArrowMoveSpeed = 1.0f;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic* DynamicArrowMat;
+	UPROPERTY()
+	AActor* TargetActor;						// The actor that the arrow hovers above
+	UPROPERTY()
 	APlayerCameraManager* CamManager;
+	UPROPERTY()
+	float CurVerticalOffset = 0.0f;
+	UPROPERTY()
+	float CurAlpha = 1.0f;
 
-	void UpdateArrow();									// Updates the arrow's location and rotation
+	UPROPERTY()
+	float CurTime;
 
+	bool bIsTargetingMode = false;
 
+	void UpdateArrow(float DeltaTime);			// Updates the arrow's location and rotation
 };
