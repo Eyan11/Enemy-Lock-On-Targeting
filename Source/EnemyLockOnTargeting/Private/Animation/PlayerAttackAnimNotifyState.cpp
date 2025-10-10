@@ -16,26 +16,8 @@ void UPlayerAttackAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp,
 
 	// *** Check Melee Combat Component Reference
 	if (!IsValid(MeleeCombatComp)) {
-
-		if (!MeshComp || !MeshComp->GetOwner()) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeshComp or MeshComp->GetOwner()"));
-			return;
-		}
-
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(MeshComp->GetOwner());
-		if (!PlayerCharacter) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No PlayerCharacter reference in PlayerAttackAnimNotifyState"));
-			return;
-		}
-
 		MeleeCombatComp = PlayerCharacter->GetMeleeCombatComponent();
-		if (!MeleeCombatComp) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeleeCombatComp reference in PlayerAttackAnimNotifyState"));
-			return;
-		}
 	}
 
 	// *** Enable Attack Collision
@@ -49,26 +31,8 @@ void UPlayerAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp,
 	
 	// *** Check Melee Combat Component Reference
 	if (!IsValid(MeleeCombatComp)) {
-
-		if (!MeshComp || !MeshComp->GetOwner()) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeshComp or MeshComp->GetOwner()"));
-			return;
-		}
-
 		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(MeshComp->GetOwner());
-		if (!PlayerCharacter) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No PlayerCharacter reference in PlayerAttackAnimNotifyState"));
-			return;
-		}
-
 		MeleeCombatComp = PlayerCharacter->GetMeleeCombatComponent();
-		if (!MeleeCombatComp) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeleeCombatComp reference in PlayerAttackAnimNotifyState"));
-			return;
-		}
 	}
 	
 	// *** Disable Attack Collision

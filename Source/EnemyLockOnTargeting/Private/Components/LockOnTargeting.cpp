@@ -44,26 +44,11 @@ void ULockOnTargeting::BeginPlay()
 	DefaultSpringArmLength = SpringArm->TargetArmLength;
 	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
-	// DEBUG
-	if (PlayerActor && SpringArm && Camera && PlayerController && TargetingArrowClass && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Got all references in LockOnTargeting"));
-	}
-	else if (GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Missing a reference in LockOnTargeting"));
-	}
-
-
 	// *** Spawn Targeting Arrow
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	TargetingArrow = GetWorld()->SpawnActor<ATargetingArrow>(TargetingArrowClass, 
 		FVector::ZeroVector, FRotator::ZeroRotator,SpawnParams);
-
-	// DEBUG
-	if (TargetingArrow && GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Spawned Targeting Arrow"));
-	else if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Did Not Spawn Targeting Arrow"));
 }
 
 
@@ -121,7 +106,7 @@ void ULockOnTargeting::OnTargetingInputStart() {
 			(PlayerActor->GetActorRightVector(), Camera->GetForwardVector());
 
 		if (dotProdResult > 0)		// If camera is on left side of player (acute angle)
-			TargetingOffsetRotation.Yaw = -DefaultTargetingYawOffset;	// Flip default yaw to left side
+			TargetingOffsetRotation.Yaw = -DefaultTargetingYawOffset;	// Flip default yaw to left side of player
 
 		// Initialize variables
 		bIsTargeting = true;
@@ -217,11 +202,11 @@ void ULockOnTargeting::UpdateNonTargeting() {
 
 	AActor* nearestTarget = GetNearestTarget(false);
 
-	if (!nearestTarget) {
+	if (!nearestTarget) {							// If no targets in range, hide arrow
 		NonTargetingActor = nullptr;
 		TargetingArrow->HideArrow();
 	}
-	else if (NonTargetingActor != nearestTarget) {
+	else if (NonTargetingActor != nearestTarget) {	// If a different target becomes closer, place arrow above new target
 		NonTargetingActor = nearestTarget;
 		TargetingArrow->SetTarget(NonTargetingActor);
 		TargetingArrow->StartNonTargetingMode();
@@ -267,12 +252,6 @@ TArray<AActor*> ULockOnTargeting::GetAllTargetsInRange() {
 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), sphereStart,
 		sphereRadius, ObjectTypes, nullptr, ActorsToIgnore, nearbyActors);
 
-	// DEBUG
-	#if WITH_EDITOR								// Only draw in editor, not in final build
-	DrawDebugSphere(GetWorld(), sphereStart,
-			sphereRadius, 15, FColor::Green, false, 1.0f, 0, 1.5f);
-	#endif
-
 
 	TArray<AActor*> targetableActors;
 
@@ -309,17 +288,17 @@ AActor* ULockOnTargeting::GetNearestTarget(bool bConsiderPreviousTarget) {
 	}
 
 	// *** Initialize Variables
-	AActor* closestActor = nullptr;										// Current closest actor in loop
-	float closestDist = MaxTargetingDistance * MaxTargetingDistance;	// Distance to closest actor
-	float curDist = FLT_MAX;											// Distance of current actor in loop
+	AActor* closestActor = nullptr;
+	float closestDistSqr = MaxTargetingDistance * MaxTargetingDistance;
+	float curDistSqr = FLT_MAX;
 
 	// *** Find Closest Target
 	for(AActor* actor : targetableActors) {
 
-		curDist = actor->GetSquaredDistanceTo(PlayerActor);
+		curDistSqr = actor->GetSquaredDistanceTo(PlayerActor);
 
-		if (curDist < closestDist) {	// Found new closest actor
-			closestDist = curDist;
+		if (curDistSqr < closestDistSqr) {	// Found new closest actor
+			closestDistSqr = curDistSqr;
 			closestActor = actor;
 		}
 	}
@@ -343,17 +322,10 @@ AActor* ULockOnTargeting::GetNextTargetInDirection(bool bCheckRight) {
 		targetableActors.Remove(TargetedActor);
 
 	// *** Initialize Variables
-	float curDotProd;											// Dot product of the current actor in loop
-	AActor* closestActor = nullptr;								// Current closest actor
-	float closestDotProd = bCheckRight ? FLT_MAX : -FLT_MAX;	// Dot product of closest actor
+	AActor* closestActor = nullptr;
+	float curDotProd;
+	float closestDotProd = bCheckRight ? FLT_MAX : -FLT_MAX; // Set to max if checking for target on right, otherwise set to min
 
-	// DEBUG
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.0f, FColor::Blue,
-			TEXT("Number of targetable actors = ") + FString::FromInt(targetableActors.Num()));
-	}
 
 	// *** Find Closest Target
 	for (AActor* actor : targetableActors) {
@@ -406,7 +378,7 @@ void ULockOnTargeting::UpdateCameraReset(float DeltaTime) {
 void ULockOnTargeting::OnLookInput(FVector2D LookInput) {
 
 	// *** Check For Camera Reset Interrupt
-	if (bIsCameraResetting && LookInput.SquaredLength() > 0.02)
+	if (bIsCameraResetting && LookInput.SquaredLength() > StopCamResetDeadzoneSqr)
 		bIsCameraResetting = false;
 	
 	// *** Check For Targeting Offset Rotation Adjustment

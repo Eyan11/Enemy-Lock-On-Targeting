@@ -130,6 +130,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
 	float JumpDelay = 0.1f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
+	float KillZ = -2000.0f;
+
 	// *** Enemy Spawning
 	UPROPERTY(EditDefaultsOnly, Category = "EnemySpawning")
 	TSubclassOf<AEnemyCharacter> EnemyToSpawn;

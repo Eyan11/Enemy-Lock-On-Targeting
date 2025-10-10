@@ -1,5 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+/*
+* Author: Eyan Martucci
+* Description: Manages the targeting arrow's transform and style
+*/
 
 #include "UI/TargetingArrow.h"
 
@@ -39,7 +41,6 @@ void ATargetingArrow::Tick(float DeltaTime)
 		UpdateArrow(DeltaTime);
 }
 
-
 // Shows arrow above the targeted actor
 void ATargetingArrow::SetTarget(AActor* NewTarget) {
 
@@ -48,21 +49,23 @@ void ATargetingArrow::SetTarget(AActor* NewTarget) {
 	PaperSpriteComp->SetVisibility(true);
 }
 
+// Initializes values for when arrow is in targeting mode
 void ATargetingArrow::StartTargetingMode() {
 
 	bIsTargetingMode = true;
-	SetActorScale3D(FVector::OneVector);
-	CurTime = 0.0f;				// Start at min height
+	SetActorScale3D(FVector::OneVector);	// Increase size
+	CurTime = 0.0f;							// Start at min height
 	CurVerticalOffset = 0.0f;
 	UpdateArrow(0.0f);
 	DynamicArrowMat->SetVectorParameterValue("SpriteColor", TargetingArrowRedColor);
 	PaperSpriteComp->SetVisibility(true);
 }
 
+// Initializes values for when arrow is in the non-targeting mode
 void ATargetingArrow::StartNonTargetingMode() {
 
 	bIsTargetingMode = false;
-	SetActorScale3D(FVector::OneVector * 0.6);
+	SetActorScale3D(FVector::OneVector * 0.6);	// Shrink size
 	CurTime = (PI / 2.0f) / ArrowAlphaSpeed;	// Start with alpha = 1.0
 	CurVerticalOffset = 0.0f;
 	UpdateArrow(0.0f);
@@ -70,7 +73,7 @@ void ATargetingArrow::StartNonTargetingMode() {
 	PaperSpriteComp->SetVisibility(true);
 }
 
-// Hides arrow and reset variables
+// Sets arrow visibility to false and removes targeted actor reference
 void ATargetingArrow::HideArrow() {
 
 	PaperSpriteComp->SetVisibility(false);
@@ -90,7 +93,7 @@ void ATargetingArrow::UpdateArrow(float DeltaTime) {
 	if (bIsTargetingMode) {
 		CurTime += DeltaTime;
 		CurVerticalOffset = VerticalBobCurve->GetFloatValue(CurTime * ArrowMoveSpeed) * TargetingVerticalMaxHeightOffset;
-		// Applied when setting location below
+		// CurVerticalOffset is used when setting location below
 	}
 	// *** Loop Alpha in Non-Targeting Mode
 	else {

@@ -23,31 +23,11 @@ void UEnemyHealth::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!GetOwner() && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetOwner() is null in EnemyHealth"));
-		return;
-	}
-
-	// *** Get Enemy Character Reference
+	// *** Get References
 	EnemyCharacter = Cast<AEnemyCharacter>(GetOwner());
-	if (!EnemyCharacter && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharacter is null in EnemyHealth"));
-		return;
-	}
-
-	// *** Get Enemy Anim Instance
 	EnemyAnimInstance = Cast<UEnemyAnimInstance>(EnemyCharacter->GetMesh()->GetAnimInstance());
-	if (!EnemyAnimInstance && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAnimInstance is null in EnemyHealth"));
-		return;
-	}
 
-	if ((!HurtMontage || !DeathMontage) && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("HurtMontage or DeathMontage is null in EnemyHealth"));
-		return;
-	}
-
-	// *** Subscribe Functions to Events
+	// *** Bind functions to events
 	EnemyCharacter->OnTakeAnyDamage.AddDynamic(this, &UEnemyHealth::OnTakeDamage);
 	EnemyAnimInstance->OnMontageEnded.AddDynamic(this, &UEnemyHealth::OnMontageEnd);
 }
@@ -67,55 +47,33 @@ void UEnemyHealth::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamag
 	if(Health <= 0 || Damage <= 0)
 		return;
 
-	if ((!EnemyAnimInstance || !EnemyCharacter) && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyAnimInstance or EnemyCharacter is null in EnemyHealth"));
-		return;
-	}
-
 	// *** Enemy Hurt
 	if (Health > Damage) {
-		Health -= Damage;
-		EnemyAnimInstance->Montage_Play(HurtMontage);
 
-		// *** Update Healthbar
-		if (!EnemyCharacter->GetHealthbarWidget() && GEngine) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetHealthbarWidget is null in EnemyHealth"));
-			return;
-		}
-		else {
-			EnemyCharacter->GetHealthbarWidget()->ShowHealthbar();
-			EnemyCharacter->GetHealthbarWidget()->SetBarValuePercent(Health / MaxHealth);
-		}
+		Health -= Damage;
+		EnemyAnimInstance->Montage_Play(HurtMontage);			// Play hurt montage
+
+		EnemyCharacter->GetHealthbarWidget()->ShowHealthbar();	// Show healthbar
+		EnemyCharacter->GetHealthbarWidget()->SetBarValuePercent(Health / MaxHealth);	// Update healthbar value
 	}
 
 	// *** Enemy Death
 	else {
 		Health = 0;
-		EnemyCharacter->StopMovementOnDeath();
-		EnemyAnimInstance->Montage_Play(DeathMontage);
+		EnemyCharacter->StopMovementOnDeath();					// Disable movement
+		EnemyAnimInstance->Montage_Play(DeathMontage);			// Start death montage
 
-		// *** Hide Healthbar
-		if (!EnemyCharacter->GetHealthbarWidget() && GEngine) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("GetHealthbarWidget is null in EnemyHealth"));
-			return;
-		}
-		else
-			EnemyCharacter->GetHealthbarWidget()->HideHealthbar();
+		EnemyCharacter->GetHealthbarWidget()->HideHealthbar();	// Hide healthbar
 	}
-
-	// DEBUG - print current health
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, 
-			FString::Printf(TEXT("Enemy Took Damage. Health = %f"), Health));
 }
 
 
-// Destroy character when death montage is finished
+// Cleanup after montage ends, destroys enemy when death montage is finished
 void UEnemyHealth::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted) {
 
-	if (Montage == DeathMontage)
+	if (Montage == DeathMontage)					// If death montage ended, destroy enemy
 		GetOwner()->Destroy();
 	
-	if (bInterrupted && EnemyCharacter)
-		EnemyCharacter->DisableAttackCollision();
-}
+	if (bInterrupted && EnemyCharacter)				// If montage was interrupted
+		EnemyCharacter->DisableAttackCollision();	// Disable attack collision incase attack was interrupted
+}	

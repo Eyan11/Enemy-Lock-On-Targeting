@@ -13,9 +13,9 @@
 #include "Components/SkeletalMeshComponent.h"			// Skeletal Mesh (to hold sword)
 #include "Components/CapsuleComponent.h"				// Capsule Collision
 #include "Components/BoxComponent.h"					// Box Collision
-#include "Perception/AIPerceptionStimuliSourceComponent.h"
-#include "Perception/AISense_Sight.h"
-#include "Characters/EnemyCharacter.h"					// Enemy Character (to spawn)
+#include "Perception/AIPerceptionStimuliSourceComponent.h"	// Perception (for AI detection)
+#include "Perception/AISense_Sight.h"						// Perception (for AI detection)
+#include "Kismet/GameplayStatics.h"						// To Restart Level
 
 
 // Sets default values
@@ -63,11 +63,6 @@ APlayerCharacter::APlayerCharacter()
 
 	// Stimulus Source
 	StimulusSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Stimulus"));
-	if (!StimulusSource) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("StimulusSource is null in PlayerController"));
-		return;
-	}
 	StimulusSource->RegisterForSense(TSubclassOf<UAISense_Sight>());
 	StimulusSource->RegisterWithPerceptionSystem();
 }
@@ -99,6 +94,14 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	if (JumpTimer > 0)
 		JumpTimer -= DeltaTime;
+
+	// Restart level if player falls off the map
+	if (GetActorLocation().Z < KillZ) {
+		UWorld* world = GetWorld();
+		if (!world)	return;
+
+		UGameplayStatics::OpenLevel(world, FName(*world->GetName()), false);	// Open level again
+	}
 }
 
 // Locks player rotation every frame depending on lock on targeting mode
@@ -150,26 +153,24 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	enhancedInput->BindAction(SpawnEnemyAction, ETriggerEvent::Started, this, &APlayerCharacter::SpawnEnemy);
 }
 
-void APlayerCharacter::Landed(const FHitResult& Hit)
-{
+// Called when player goes from not grounded to grounded
+void APlayerCharacter::Landed(const FHitResult& Hit) {
 	JumpTimer = JumpDelay;
 }
-
 
 // Moves player relative to camera
 void APlayerCharacter::Move(const FInputActionValue& Value) {
 	
 	if (!bIsMoveInputAllowed) return;
 
-	FVector2D moveInput = Value.Get<FVector2D>();
-	moveInput = moveInput.GetSafeNormal();		// Prevent faster diagonal movement
-
-	// *** Check For Special Cases
-	if (GetCharacterMovement()->IsFalling() || moveInput.Size() < InputDeadzone) {
+	// Prevent movement if falling
+	if (GetCharacterMovement()->IsFalling()) {
 		bIsDelayingMovement = false;
-		return;									// No movement if falling or small input
+		return;
 	}
 
+	FVector2D moveInput = Value.Get<FVector2D>();
+	moveInput = moveInput.GetSafeNormal();		// Prevent faster diagonal movement
 
 	// *** Calculate Input Direction Relative to Camera
 	FVector camForward = Camera->GetForwardVector();
@@ -258,9 +259,6 @@ void APlayerCharacter::StartJump() {
 
 		if (curVel.IsNearlyZero())				// If not moving, only jump upwards
 			return;
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, FString::Printf(TEXT("curVel: %s"), *curVel.ToString()));
 
 		// Get angles between velocity and player forward/right vectors
 		float forwardDotProd = FVector::DotProduct(curVel, GetActorForwardVector().GetSafeNormal2D());

@@ -1,4 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/*
+* Author: Eyan Martucci
+* Description: Manages the targeting arrow's transform and style
+*/
 
 #pragma once
 

@@ -68,10 +68,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The speed at which the spring arm moves to its target
 	float SpringArmInterpSpeed = 8.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The time frame from releasing to pressing the targeting button will get a different target
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// The amount of time between releasing and pressing the targeting input in order to switch targets
 	float SwitchTargetsTimeFrame = 0.5f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting") // How often to check for the closest enemy and place the non-targeting arrow above them
 	float UpdateNonTargetingInterval = 0.5;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Targeting")	// Reference to BP_TargetingArrow so the blueprint subclass can be spawned
@@ -85,6 +85,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The angle relative to player to offset the camera when entering targeting mode
 	float DefaultTargetingYawOffset = -30.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")	// The squared deadzone of look input required to cancel camera reset movement.
+	float StopCamResetDeadzoneSqr = 0.02f;
 
 	UPROPERTY()
 	class USpringArmComponent* SpringArm;

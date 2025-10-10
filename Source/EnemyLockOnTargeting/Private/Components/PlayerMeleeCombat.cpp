@@ -26,33 +26,10 @@ void UPlayerMeleeCombat::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// *** Check Montage Reference
-	if (!AttackMontage || !HurtMontage) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Missing reference to a montage in PlayerMeleeCombat"));
-	}
-
-	// *** Get Player Reference
+	// *** Get References
 	PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
-	if (!PlayerCharacter) {
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("PlayerCharacter reference is null in PlayerMeleeCombat"));
-		return;
-	}
-
-	// *** Get Player Anim Instance Reference
 	PlayerAnimInstance = Cast<UPlayerAnimInstance>(PlayerCharacter->GetMesh()->GetAnimInstance());
-	if (!PlayerAnimInstance) {
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("PlayerAnimInstance reference is null in PlayerMeleeCombat"));
-		return;
-	}
-
-	// *** Get Sword Collision Reference
 	SwordCollision = PlayerCharacter->GetSwordCollision();
-	if (!SwordCollision) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("SwordCollision is null in PlayerMeleeCombat"));
-		return;
-	}
 
 	// *** Bind Sword Collision Overlap and Take Damage
 	SwordCollision->OnComponentBeginOverlap.AddDynamic(this, &UPlayerMeleeCombat::OnSwordBeginOverlap);
@@ -68,23 +45,10 @@ void UPlayerMeleeCombat::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 }
 
 
-// Starts attack montage and hitbox
+// Starts attack montage and enables hitbox
 void UPlayerMeleeCombat::OnAttackInput() {
 
-	if (!PlayerCharacter) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat.OnAttackInput()"));
-		return;
-	}
-
-	if (!PlayerAnimInstance) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerAnimInstance is null in PlayerMeleeCombat"));
-		return;
-	}
-
 	if (bIsAttacking || !bCanAttack) return;	// Ignore if already attacking or not allowed to
-
 
 	// *** Play Normal Attack Montage
 	PlayerAnimInstance->Montage_Play(AttackMontage);
@@ -93,25 +57,19 @@ void UPlayerMeleeCombat::OnAttackInput() {
 }
 
 
-// Cleans up attack montage variables
+// Handles montage cleanup
 void UPlayerMeleeCombat::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
-
-	if (!PlayerCharacter) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter is null in PlayerMeleeCombat.OnAttackMontageEnded"));
-		return;
-	}
 
 	if (Montage == AttackMontage)		// Cleanup attack montage
 		bIsAttacking = false;
 	else if (Montage == HurtMontage)	// Cleanup hurt montage
 		bCanAttack = true;
-	else if (Montage == BlockMontage)
+	else if (Montage == BlockMontage)	// Cleanup block montage
 		bCanAttack = true;
 
-	if (bInterrupted)
+	if (bInterrupted)			// Disable sword collision if montage was interrupted
 		DisableAttackCollision();
-	else								// Resume movement if no montage is playing after this one
+	else						// Resume movement if no montage is playing after this one
 		PlayerCharacter->ResumeMoveInput();
 }
 
@@ -119,13 +77,6 @@ void UPlayerMeleeCombat::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted
 // Enables sword collision
 void UPlayerMeleeCombat::EnableAttackCollision() {
 
-	if (!SwordCollision) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter or SwordCollision is null in PlayerMeleeCombat"));
-		return;
-	}
-
-	// *** Enable Sword Overlap Collision
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
@@ -133,13 +84,6 @@ void UPlayerMeleeCombat::EnableAttackCollision() {
 // Disables sword collision
 void UPlayerMeleeCombat::DisableAttackCollision() {
 
-	if (!SwordCollision) {
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerCharacter or SwordCollision is null in PlayerMeleeCombat"));
-		return;
-	}
-
-	// *** Disable Sword Collision
 	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -177,9 +121,6 @@ void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const 
 
 		dotProd = FVector::DotProduct(PlayerCharacter->GetActorForwardVector(),
 			DamageCauser->GetActorForwardVector());
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, FString::Printf(TEXT("Dot Product Result: %f"), dotProd));
 	}
 
 	// *** Block Attack
@@ -187,17 +128,12 @@ void UPlayerMeleeCombat::OnTakeDamage(AActor* DamagedActor, float Damage, const 
 		PlayerAnimInstance->Montage_Play(BlockMontage);
 		bCanAttack = false;
 		PlayerCharacter->StopMoveInput();
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player blocked attack"));
 	}
 	// *** Hurt Player
 	else {				// If not shielding or attacker is facing same direction as player (behind)
 		PlayerAnimInstance->Montage_Play(HurtMontage);
 		bCanAttack = false;
 		PlayerCharacter->StopMoveInput();
-
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Black, TEXT("Player took damage"));
 	}
 }
+

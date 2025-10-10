@@ -14,21 +14,8 @@ void UEnemyAttackAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp,
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
 	// *** Check Enemy Character Reference
-	if (!IsValid(EnemyCharacter)) {
-
-		if (!MeshComp || !MeshComp->GetOwner()) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeshComp or MeshComp->GetOwner() in EnemyAttackAnimNotifyState"));
-			return;
-		}
-
+	if (!IsValid(EnemyCharacter))
 		EnemyCharacter = Cast<AEnemyCharacter>(MeshComp->GetOwner());
-		if (!EnemyCharacter) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No EnemyCharacter reference in EnemyAttackAnimNotifyState"));
-			return;
-		}
-	}
 
 	// *** Enable Attack Collision
 	EnemyCharacter->EnableAttackCollision();
@@ -40,21 +27,8 @@ void UEnemyAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp,
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
 	// *** Check Enemy Character Reference
-	if (!IsValid(EnemyCharacter)) {
-
-		if (!MeshComp || !MeshComp->GetOwner()) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No MeshComp or MeshComp->GetOwner() in EnemyAttackAnimNotifyState"));
-			return;
-		}
-
+	if (!IsValid(EnemyCharacter))
 		EnemyCharacter = Cast<AEnemyCharacter>(MeshComp->GetOwner());
-		if (!EnemyCharacter) {
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No EnemyCharacter reference in EnemyAttackAnimNotifyState"));
-			return;
-		}
-	}
 
 	// *** Disable Attack Collision
 	EnemyCharacter->DisableAttackCollision();

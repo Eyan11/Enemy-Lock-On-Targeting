@@ -94,7 +94,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float RetreatingSpeed = 350.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")	// The animation montage played when doing a jump or double jump attack
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	class UAnimMontage* AttackMontage = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")

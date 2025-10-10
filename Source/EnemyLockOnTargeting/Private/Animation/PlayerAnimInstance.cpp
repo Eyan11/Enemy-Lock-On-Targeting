@@ -9,24 +9,12 @@
 #include "GameFramework/PawnMovementComponent.h"	// For IsFalling check
 
 
-void UPlayerAnimInstance::NativeBeginPlay() {
+void UPlayerAnimInstance::NativeBeginPlay() 
+{
 	Super::NativeInitializeAnimation();		// Still run event for parent class
 
 	APawn* PawnOwner = TryGetPawnOwner();
-
-	// DEBUG
-	if (!PawnOwner && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PawnOwner Reference is null in PlayerAnimInstance.cpp"));
-		return;
-	}
-
 	PlayerCharacter = Cast<APlayerCharacter>(PawnOwner);
-
-	// DEBUG
-	if (!PlayerCharacter && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Player Reference is null in PlayerAnimInstance.cpp"));
-		return;
-	}
 }
 
 /* Gets player speed and if grounded */

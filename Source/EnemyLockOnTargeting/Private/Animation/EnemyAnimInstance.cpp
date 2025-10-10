@@ -14,20 +14,7 @@ void UEnemyAnimInstance::NativeBeginPlay()
 	Super::NativeInitializeAnimation();		// Still run event for parent class
 
 	APawn* PawnOwner = TryGetPawnOwner();
-
-	// DEBUG
-	if (!PawnOwner && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PawnOwner is null in PlayerAnimInstance.cpp"));
-		return;
-	}
-
 	EnemyCharacter = Cast<AEnemyCharacter>(PawnOwner);
-
-	// DEBUG
-	if (!EnemyCharacter && GEngine) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EnemyCharactrer is null in PlayerAnimInstance.cpp"));
-		return;
-	}
 }
 
 
