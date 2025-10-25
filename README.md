@@ -37,6 +37,7 @@ Switch Targets: D-pad Left or D-pad Right While in Targeting Mode
 Spawn Enemy: Y (Top Button)
 
 
+
 Where to Play:
 
 Download the executable to play the demo yourself here: https://eyan11.itch.io/camera-lock-on-targeting-demo 
