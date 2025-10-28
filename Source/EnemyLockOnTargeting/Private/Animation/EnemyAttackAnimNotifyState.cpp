@@ -18,7 +18,8 @@ void UEnemyAttackAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		EnemyCharacter = Cast<AEnemyCharacter>(MeshComp->GetOwner());
 
 	// *** Enable Attack Collision
-	EnemyCharacter->EnableAttackCollision();
+	if (IsValid(EnemyCharacter))
+		EnemyCharacter->EnableAttackCollision();
 }
 
 void UEnemyAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp,
@@ -31,5 +32,6 @@ void UEnemyAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp,
 		EnemyCharacter = Cast<AEnemyCharacter>(MeshComp->GetOwner());
 
 	// *** Disable Attack Collision
-	EnemyCharacter->DisableAttackCollision();
+	if (IsValid(EnemyCharacter))
+		EnemyCharacter->DisableAttackCollision();
 }

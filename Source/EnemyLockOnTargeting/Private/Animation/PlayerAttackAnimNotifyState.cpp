@@ -21,7 +21,8 @@ void UPlayerAttackAnimNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp,
 	}
 
 	// *** Enable Attack Collision
-	MeleeCombatComp->EnableAttackCollision();
+	if (IsValid(MeleeCombatComp))
+		MeleeCombatComp->EnableAttackCollision();
 }
 
 void UPlayerAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, 
@@ -36,6 +37,7 @@ void UPlayerAttackAnimNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp,
 	}
 	
 	// *** Disable Attack Collision
-	MeleeCombatComp->DisableAttackCollision();
+	if(IsValid(MeleeCombatComp))
+		MeleeCombatComp->DisableAttackCollision();
 }
 

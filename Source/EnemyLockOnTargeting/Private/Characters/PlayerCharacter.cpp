@@ -350,7 +350,7 @@ void APlayerCharacter::SpawnEnemy() {
 	FVector spawnLoc = GetActorLocation() +		// Spawn in camera forward direction in the air
 		(Camera->GetForwardVector().GetSafeNormal2D() * EnemySpawnDistance) + (GetActorUpVector() * 100.0f);
 	FActorSpawnParameters SpawnParams;
-	AActor* newEnemy = GetWorld()->SpawnActor<AActor>(EnemyToSpawn,	spawnLoc, GetActorRotation(), SpawnParams);
+	AEnemyCharacter* newEnemy = GetWorld()->SpawnActor<AEnemyCharacter>(EnemyToSpawn,	spawnLoc, GetActorRotation(), SpawnParams);
 
 	// Check if Spawn Worked
 	if (!newEnemy && GEngine)

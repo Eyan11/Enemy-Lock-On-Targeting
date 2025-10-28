@@ -101,6 +101,12 @@ private:
 	float SwordDamage = 20.0f;
 
 	UPROPERTY()
+	bool bHasAttacked = false;
+
+	UPROPERTY()
+	bool bHasDoneDamage = false;
+
+	UPROPERTY()
 	class UEnemyAnimInstance* EnemyAnimInstance = nullptr;
 
 	UPROPERTY()

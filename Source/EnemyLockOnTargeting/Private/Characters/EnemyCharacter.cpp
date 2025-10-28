@@ -32,7 +32,13 @@ AEnemyCharacter::AEnemyCharacter()
 	SwordStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SwordCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Sword Collision"));
 	SwordCollision->SetupAttachment(SwordStaticMesh);
-	SwordCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Sword Collision Settings
+	SwordCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SwordCollision->SetGenerateOverlapEvents(true);
+	SwordCollision->SetCollisionObjectType(ECC_GameTraceChannel3);	// Set to "Weapon" channel
+	SwordCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SwordCollision->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);	// Only overlap with "Player" channel
 
 	// AI Controller
 	AIControllerClass = AEnemyAIController::StaticClass();
@@ -108,6 +114,8 @@ void AEnemyCharacter::SwitchMoveState(EEnemyMoveState newState) {
 // Plays attack montage
 void AEnemyCharacter::StartAttacking() 
 {
+	bHasAttacked = true;
+	bHasDoneDamage = false;
 	EnemyAnimInstance->Montage_Play(AttackMontage);		// Play attack montage
 }
 
@@ -117,15 +125,16 @@ void AEnemyCharacter::OnSwordBeginOverlap(UPrimitiveComponent* OverlappedCompone
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) 
 {
 	// Apply damage to player
-	if (OtherActor && Cast<APlayerCharacter>(OtherActor)) {	
+	if (!bHasDoneDamage && bHasAttacked && OtherActor) {
 
 		UGameplayStatics::ApplyDamage(
 			OtherActor,						// Actor to damage
 			SwordDamage,					// Damage amount
 			GetInstigatorController(),		// Event instigator
-			this,							// Damage cause
+			this,							// Damage causer
 			UDamageType::StaticClass()		// Damage type class
 		);
+		bHasDoneDamage = true;
 	}
 }
 
@@ -149,6 +158,8 @@ void AEnemyCharacter::OnMontageEnd(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage == AttackMontage)
 		EnemyAIController->OnFinishAttack();	// Starts transition to the retreat state
+	if (bInterrupted)
+		DisableAttackCollision();			// Disable sword collision if montage was interrupted
 }
 
 
