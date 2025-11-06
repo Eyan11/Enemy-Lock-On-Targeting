@@ -20,21 +20,29 @@ An enemy targeting camera system is used in games to make combat for controller 
 ## Keyboard and Mouse Controls
 
 Move: WASD
-Jump: Space
-Attack: Left Mouse Button
-Target Enemy: Hold Right Mouse Button
-Switch Targets: Q (Left) or E (Right) While in Targeting Mode
-Spawn Enemy: R
 
----
+Jump: Space
+
+Attack: Left Mouse Button
+
+Target Enemy: Hold Right Mouse Button
+
+Switch Targets: Q (Left) or E (Right) While in Targeting Mode
+
+Spawn Enemy: R
 
 ## Controller Controls
 
 Move: Left Stick
+
 Jump: A (Bottom Button)
+
 Attack: X (Left Button)
+
 Target Enemy: Left Trigger
+
 Switch Targets: D-pad Left or D-pad Right While in Targeting Mode
+
 Spawn Enemy: Y (Top Button)
 
 ---
